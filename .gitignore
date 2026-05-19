@@ -10,3 +10,4 @@ build/
 *_out/
 problem*_out/
 stdin_out/
+data/lookup.pkl
