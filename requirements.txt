@@ -1,8 +1,4 @@
-om-pycycle
-openmdao
-numpy
+streamlit
 matplotlib
 plotly
-jupyter
-pandas
-pytest
+numpy
