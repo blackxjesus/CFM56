@@ -19,7 +19,8 @@ _PSI_TO_KPA = 6.89476          # psi * 6.89476 = kPa
 _BTU_LBM_TO_KJ_KG = 2.326     # Btu/lbm * 2.326 = kJ/kg
 
 
-def run_design_point(flight_phase: str, altitude_ft: float, mach: float) -> EngineResults:
+def run_design_point(flight_phase: str, altitude_ft: float, mach: float,
+                     T4_override: float = None) -> EngineResults:
     """Run CFM56-5B design-point simulation.
 
     Parameters
@@ -30,6 +31,9 @@ def run_design_point(flight_phase: str, altitude_ft: float, mach: float) -> Engi
         Pressure altitude in feet.
     mach : float
         Flight Mach number.
+    T4_override : float, optional
+        Turbine inlet temperature in K. If None, uses CFM56_PARAMS['T4_design'].
+        Use this to simulate throttle position (e.g. 1000K = idle, 1700K = full).
 
     Returns
     -------
@@ -42,6 +46,11 @@ def run_design_point(flight_phase: str, altitude_ft: float, mach: float) -> Engi
     # Override flight conditions from design defaults
     prob.set_val('fc.alt', altitude_ft, units='ft')
     prob.set_val('fc.MN', mach)
+
+    # Apply throttle (T4 override)
+    if T4_override is not None:
+        T4_R = T4_override * (9.0 / 5.0)  # K → degR
+        prob.set_val('burner.Fl_I:FAR', T4_R / 3060.0 * 0.027)
 
     prob.run_model()
 
