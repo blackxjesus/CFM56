@@ -228,10 +228,68 @@ A szimulált 113.8 kN és az irodalmi 133.4 kN közötti **14.7%-os eltérés** 
 
 ---
 
-## 9. Git commit történet
+## 9. Gázkar Szimulátor és ECAM Panel (04_throttle.ipynb)
+
+### 9.1 Áttekintés
+
+A `notebooks/04_throttle.ipynb` notebook interaktív gázkar-szimulátort és A320-stílusú ECAM motorkijelzőt valósít meg.
+
+### 9.2 Vezérlők
+
+| Widget | Típus | Funkció |
+|--------|-------|---------|
+| **Flight phase** | Dropdown | Felszállás / Emelkedés / Utazórepülés választása |
+| **Throttle [%]** | Slider (0–100%) | Gázkar állása → T4 = 1000 + throttle% × 7 K |
+
+### 9.3 ECAM panel — paraméterek és pontosság
+
+| Paraméter | Forrás | Pontosság |
+|-----------|--------|-----------|
+| **N1 [%]** | Empirikus: 20 + 0.80 × throttle% | ⚠️ Becsült |
+| **EGT [°C]** | S5_lpt_exit hőmérséklet − 273.15 | ✅ Szimulációból |
+| **N2 [%]** | Empirikus: 55 + 0.45 × throttle% | ⚠️ Becsült |
+| **FF [kg/h]** | fuel_flow × 3600, magasság-korrigált | ✅ Szimulációból |
+| **THR [kN]** | thrust_kN közvetlenül | ✅ Szimulációból |
+| **OPR** | opr közvetlenül | ✅ Szimulációból |
+| **SFC [kg/kN·s]** | fuel_flow / thrust_kN | ✅ Szimulációból |
+
+**Megjegyzés az N1/N2 becslésről:**
+A pyCycle design-point modell rotációs sebességet nem számít. Az N1/N2 értékek empirikus lineáris közelítéssel adódnak a CFM56-5B AMM (Aircraft Maintenance Manual) és Aircraft Commerce issue 58 adatai alapján:
+- N1: ~20% alapjáraton → ~100% TOGA-n
+- N2: ~55% alapjáraton → ~100% TOGA-n
+
+### 9.4 Magasság-korrekció a tüzelőanyag-fogyasztásra
+
+A design-point modell rögzített tömegárammal dolgozik. A magasság-korrekció az inlet állapotok alapján:
+
+```
+fuel_flow_corrected = fuel_flow × (P_inlet / P_design) × √(T_design / T_inlet)
+```
+
+ahol P_design = 105.8 kPa, T_design = 291.8 K (tengerszint, Mach 0.25).
+
+### 9.5 Gázkar-szimuláció eredményei (felszállás, T4 = 1000–1700 K)
+
+| Throttle [%] | T4 [K] | N1 [%] | EGT [°C] | FF [kg/h] | THR [kN] | SFC |
+|---|---|---|---|---|---|---|
+| 0 | 1000 | 20.0 | 489 | 3240 | 109.1 | 0.00829 |
+| 25 | 1175 | 40.0 | 580 | 3816 | 110.4 | 0.00960 |
+| 50 | 1350 | 60.0 | 667 | 4392 | 111.6 | 0.01094 |
+| 75 | 1525 | 80.0 | 754 | 4968 | 112.7 | 0.01225 |
+| 100 | 1700 | 100.0 | 717 | 5544 | 113.8 | 0.01350 |
+
+---
+
+## 10. Git commit történet
 
 | Commit | Leírás |
 |--------|--------|
+| `c5a32f8` | fix: correct fuel_flow for altitude in T4_override mode |
+| `732b38d` | feat: add flight phase dropdown next to throttle slider |
+| `8e2b034` | revert: restore original 3D model without exhaust plume |
+| `33a7bd9` | feat: add thesis Word document and generation script |
+| `c722623` | feat: throttle notebook shows all 3 diagrams |
+| `d7f0469` | feat: add throttle/gas lever notebook with ipywidgets slider |
 | `17a023f` | chore: remove OpenMDAO report directories from tracking |
 | `1fbbbd3` | chore: add .gitignore and remove cache files |
 | `bd194b2` | chore: final validation and cleanup |
