@@ -55,16 +55,29 @@ def run_design_point(flight_phase: str, altitude_ft: float, mach: float,
     prob.run_model()
 
     # --- Performance scalars ---
-    fn_lbf   = float(prob.get_val('perf.Fn', units='lbf')[0])
+    fn_lbf    = float(prob.get_val('perf.Fn', units='lbf')[0])
     wfuel_lbs = float(prob.get_val('perf.Wfuel', units='lbm/s')[0])
-    opr      = float(prob.get_val('perf.OPR')[0])
-    tsfc_imp = float(prob.get_val('perf.TSFC', units='lbm/h/lbf')[0])  # lbm/(h·lbf)
+    opr       = float(prob.get_val('perf.OPR')[0])
 
-    thrust_kN  = fn_lbf * _LBF_TO_KN
-    fuel_flow  = wfuel_lbs * _LBMS_TO_KGS        # kg/s
-    # SFC in kg/(kN·s): convert from lbm/(h·lbf)
-    # 1 lbm/(h·lbf) = 0.453592 kg / (3600 s * 0.00444822 kN * 1000 N/kN … )
-    # Simpler: sfc [kg/(kN·s)] = fuel_flow [kg/s] / thrust [kN]
+    thrust_kN = fn_lbf * _LBF_TO_KN
+    fuel_flow = wfuel_lbs * _LBMS_TO_KGS  # kg/s
+
+    # When T4_override is used the design-point model keeps mass flow fixed.
+    # Correct fuel_flow for altitude: scale by inlet (P/√T) ratio relative to
+    # the sea-level design point (P0=105.8 kPa, T0=291.8 K).
+    if T4_override is not None:
+        try:
+            P_in_psi = float(prob.get_val('inlet.real_flow.flow.Fl_O:tot:P',
+                                          units='lbf/inch**2')[0])
+            T_in_R   = float(prob.get_val('inlet.real_flow.flow.Fl_O:tot:T',
+                                          units='degR')[0])
+            P_design_psi = 15.338   # psi ≈ 105.8 kPa  (sea level, Mach 0.25)
+            T_design_R   = 525.2    # degR ≈ 291.8 K
+            mass_flow_ratio = (P_in_psi / P_design_psi) * (T_design_R / T_in_R) ** 0.5
+            fuel_flow *= mass_flow_ratio
+        except Exception:
+            pass  # fall back to uncorrected value
+
     sfc = fuel_flow / thrust_kN if thrust_kN > 0 else 0.0
 
     # --- Station data (pyCycle outputs are in imperial units) ---
