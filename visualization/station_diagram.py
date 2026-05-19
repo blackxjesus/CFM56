@@ -81,5 +81,5 @@ def plot_station_diagram(results: EngineResults) -> plt.Figure:
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
     sm.set_array([])
     fig.colorbar(sm, ax=ax1, label='Hőmérséklet [K]', shrink=0.8)
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0, 1, 0.93])
     return fig

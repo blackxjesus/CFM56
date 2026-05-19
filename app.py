@@ -6,6 +6,7 @@ import sys, os, pickle, math
 sys.path.insert(0, os.path.dirname(__file__))
 
 import streamlit as st
+import streamlit.components.v1 as components
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -102,7 +103,7 @@ def ecam_html(result, n1, n2):
 
 # ── Layout ────────────────────────────────────────────────────────────────
 st.title('✈️ CFM56-5B Engine Simulator')
-st.caption('Thermodynamic cycle simulation · Nyíregyházi Egyetem · BSc Thesis 2026')
+st.caption('Termodinamikai szimulátor · Nyíregyházi Egyetem · Repülőmérnöki Szakdolgozat · DZRCRP')
 
 col_ctrl, col_ecam = st.columns([2, 1])
 
@@ -118,7 +119,7 @@ n1 = estimate_n1(throttle)
 n2 = estimate_n2(throttle)
 
 with col_ecam:
-    st.markdown(ecam_html(result, n1, n2), unsafe_allow_html=True)
+    components.html(ecam_html(result, n1, n2), height=400)
 
 st.divider()
 
@@ -127,12 +128,12 @@ tab1, tab2, tab3 = st.tabs(['📊 Station Diagram', '🌡️ T-s Diagram', '🔩
 
 with tab1:
     fig1 = plot_station_diagram(result)
-    st.pyplot(fig1)
+    st.pyplot(fig1, use_container_width=False)
     plt.close(fig1)
 
 with tab2:
     fig2 = plot_ts_diagram([result])
-    st.pyplot(fig2)
+    st.pyplot(fig2, use_container_width=False)
     plt.close(fig2)
 
 with tab3:
