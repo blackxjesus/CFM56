@@ -98,7 +98,7 @@ class CFM56Cycle(pyc.Cycle):
         # Performance connections
         self.connect('inlet.Fl_O:tot:P', 'perf.Pt2')
         self.connect('hpc.Fl_O:tot:P', 'perf.Pt3')
-        self.connect('burner.Wfuel', 'perf.Wf_total')
+        self.connect('burner.Wfuel', 'perf.Wfuel_0')
         self.connect('inlet.F_ram', 'perf.ram_drag')
         self.connect('core_nozz.Fg', 'perf.Fg_0')
         self.connect('byp_nozz.Fg', 'perf.Fg_1')
@@ -128,10 +128,13 @@ class CFM56Cycle(pyc.Cycle):
             self.set_input_defaults('burner.dPqP', p['burner_dPqP'])
             self.set_input_defaults('hpt.eff', p['hpt_eff'])
             self.set_input_defaults('hpt.MN', 0.3)
+            self.set_input_defaults('hpt.PR', 4.0)
             self.set_input_defaults('lpt.eff', p['lpt_eff'])
             self.set_input_defaults('lpt.MN', 0.4)
+            self.set_input_defaults('lpt.PR', 4.0)
             self.set_input_defaults('fc.W', p['mass_flow'] * 2.20462, units='lbm/s')
-            self.set_input_defaults('burner.Tt4', p['T4_design'] * 1.8, units='degR')
+            self.set_input_defaults('inlet.Fl_I:stat:W', p['mass_flow'] * 2.20462, units='lbm/s')
+            self.set_input_defaults('burner.Fl_I:FAR', 0.027)
             self.set_input_defaults('lp_shaft.Nmech', 4000.0, units='rpm')
             self.set_input_defaults('hp_shaft.Nmech', 14000.0, units='rpm')
 
