@@ -1,0 +1,8 @@
+om-pycycle
+openmdao
+numpy
+matplotlib
+plotly
+jupyter
+pandas
+pytest
