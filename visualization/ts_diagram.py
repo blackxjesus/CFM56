@@ -5,6 +5,8 @@ from typing import List
 from engine.results import EngineResults
 
 _STATION_ORDER = [
+    'S0_freestream', 'S2_inlet_exit', 'S21_fan_exit', 'S25_lpc_exit',
+    'S3_hpc_exit', 'S4_burner_exit', 'S45_hpt_exit', 'S5_lpt_exit', 'S8_core_nozz',
     'inlet_in', 'fan_exit', 'lpc_exit', 'hpc_exit',
     'burner_exit', 'hpt_exit', 'lpt_exit', 'core_nozz',
 ]

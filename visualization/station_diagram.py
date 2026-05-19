@@ -4,28 +4,46 @@ import matplotlib.pyplot as plt
 import numpy as np
 from engine.results import EngineResults
 
-_STATION_ORDER = [
+_STATION_LABELS = {
+    'inlet_in':      'Inlet\n(St. 2)',
+    'fan_exit':      'Fan\nkimenet',
+    'lpc_exit':      'LPC\nkimenet',
+    'hpc_exit':      'HPC\nkimenet',
+    'burner_exit':   'Égőtér\nkimenet',
+    'hpt_exit':      'HPT\nkimenet',
+    'lpt_exit':      'LPT\nkimenet',
+    'core_nozz':     'Core\nfúvócső',
+    'S0_freestream': 'Szabad\nlevegő',
+    'S2_inlet_exit': 'Inlet\n(St. 2)',
+    'S21_fan_exit':  'Fan\nkimenet',
+    'S25_lpc_exit':  'LPC\nkimenet',
+    'S3_hpc_exit':   'HPC\nkimenet',
+    'S4_burner_exit':'Égőtér\nkimenet',
+    'S45_hpt_exit':  'HPT\nkimenet',
+    'S5_lpt_exit':   'LPT\nkimenet',
+    'S8_core_nozz':  'Core\nfúvócső',
+    'S18_byp_nozz':  'Bypass\nfúvócső',
+}
+
+# Preferált sorrend — ha nincs egyezés, az összes állomást vesszük
+_PREFERRED_ORDER = [
+    'S0_freestream', 'S2_inlet_exit', 'S21_fan_exit', 'S25_lpc_exit',
+    'S3_hpc_exit', 'S4_burner_exit', 'S45_hpt_exit', 'S5_lpt_exit', 'S8_core_nozz',
     'inlet_in', 'fan_exit', 'lpc_exit', 'hpc_exit',
     'burner_exit', 'hpt_exit', 'lpt_exit', 'core_nozz',
 ]
-_STATION_LABELS = {
-    'inlet_in':    'Inlet\n(St. 2)',
-    'fan_exit':    'Fan\nkimenet',
-    'lpc_exit':    'LPC\nkimenet',
-    'hpc_exit':    'HPC\nkimenet',
-    'burner_exit': 'Égőtér\nkimenet',
-    'hpt_exit':    'HPT\nkimenet',
-    'lpt_exit':    'LPT\nkimenet',
-    'core_nozz':   'Core\nfúvócső',
-}
 
 
 def plot_station_diagram(results: EngineResults) -> plt.Figure:
     """2D állomás-diagram T és P értékekkel minden állomáson."""
-    stations = [s for s in _STATION_ORDER if s in results.stations]
+    # Használjuk a preferált sorrendet, ha van egyezés — különben az összes állomást
+    ordered = [s for s in _PREFERRED_ORDER if s in results.stations]
+    if not ordered:
+        ordered = list(results.stations.keys())
+    stations = ordered
     T_vals = [results.stations[s].T for s in stations]
     P_vals = [results.stations[s].P for s in stations]
-    labels = [_STATION_LABELS.get(s, s) for s in stations]
+    labels = [_STATION_LABELS.get(s, s.replace('_', '\n')) for s in stations]
 
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 8))
     fig.suptitle(

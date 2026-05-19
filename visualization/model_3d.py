@@ -19,6 +19,13 @@ _PROFILE = np.array([
 ])
 
 _STATION_ORDER_3D = [
+    # Tényleges szimuláció nevek
+    'S2_inlet_exit', 'S21_fan_exit', 'S21_fan_exit', 'S25_lpc_exit',
+    'S25_lpc_exit', 'S3_hpc_exit', 'S3_hpc_exit', 'S4_burner_exit',
+    'S45_hpt_exit', 'S5_lpt_exit', 'S8_core_nozz',
+]
+_STATION_ORDER_3D_ALT = [
+    # Alternatív nevek (tesztekhez)
     'inlet_in', 'fan_exit', 'fan_exit', 'lpc_exit',
     'lpc_exit', 'hpc_exit', 'hpc_exit', 'burner_exit',
     'hpt_exit', 'lpt_exit', 'core_nozz',
@@ -31,8 +38,10 @@ def plot_3d_model(results: EngineResults) -> go.Figure:
     r_core = _PROFILE[:, 1]
     r_byp = _PROFILE[:, 2]
 
+    # Válasszuk a megfelelő állomásnév-sorrendet
+    order = _STATION_ORDER_3D if any(s in results.stations for s in _STATION_ORDER_3D) else _STATION_ORDER_3D_ALT
     T_stations = []
-    for s in _STATION_ORDER_3D:
+    for s in order:
         if s in results.stations:
             T_stations.append(results.stations[s].T)
         else:
