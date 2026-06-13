@@ -125,6 +125,11 @@ def simulate_start(scenario, cockpit, idle_anchor=None, dt=0.5, t_max=180.0,
         cmd = fadec_commands(N2, cockpit, p)
         valve, fuel_cmd, ign_cmd = cmd['valve_open'], cmd['fuel_cmd'], cmd['ignition_cmd']
 
+        if valve:
+            log('STARTER ON')
+        if ign_cmd:
+            log('IGNITION ON')
+
         can_light = (N2 >= p.lightoff_N2 and fuel_cmd and ign_cmd
                      and sp['fuel_valve_ok'] and sp['igniter_ok'])
         if can_light and not lit:
@@ -142,10 +147,6 @@ def simulate_start(scenario, cockpit, idle_anchor=None, dt=0.5, t_max=180.0,
         st.start_valve.append(valve); st.igniter.append(bool(ign_cmd))
         st.eng_mode.append(cockpit.mode.value); st.master.append(cockpit.master_on)
 
-        if valve:
-            log('STARTER ON')
-        if ign_cmd:
-            log('IGNITION ON')
         if 'STARTER ON' in seen and not valve and N2 >= p.lightoff_N2:
             log('STARTER CUTOUT')
 
