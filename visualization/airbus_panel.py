@@ -14,17 +14,21 @@ Caveat: this is CSS-on-Streamlit-buttons, not hardware-accurate 3D. See spec.
 
 PANEL_CSS = """<style>
 /* ── Airbus grey-blue overhead panel frame ─────────────────────────────── */
-.ovhd-panel {
+/* The whole left column becomes the panel: it is the column that contains the
+   hidden .panel-marker sentinel (st.markdown div's don't wrap later widgets,
+   so we style the column via :has() instead). */
+.panel-marker { display: none; }
+[data-testid="column"]:has(.panel-marker) {
     background: linear-gradient(150deg, #8290a0 0%, #6b7886 55%, #586473 100%);
     border: 3px solid #3a434d;
-    border-radius: 6px;
-    padding: 14px 18px 20px;
+    border-radius: 8px;
+    padding: 16px 20px 22px;
     box-shadow: inset 0 1px 0 #9fabb8, inset 0 -3px 8px rgba(0,0,0,0.35),
                 0 8px 22px rgba(0,0,0,0.6);
 }
-.ovhd-panel .panel-title {
-    color: #f1f3f6; letter-spacing: 4px; font-size: 12px; font-weight: bold;
-    font-family: 'Courier New', monospace; text-align: center; margin-bottom: 12px;
+.panel-title {
+    color: #f1f3f6; letter-spacing: 4px; font-size: 13px; font-weight: bold;
+    font-family: 'Courier New', monospace; text-align: center; margin-bottom: 14px;
     border-bottom: 1px solid #4d5763; padding-bottom: 8px;
     text-shadow: 0 1px 1px rgba(0,0,0,0.4);
 }

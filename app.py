@@ -83,7 +83,8 @@ col_panel, col_ecam = st.columns([1, 1])
 
 # ── Airbus ENG panel (left) — illuminated pushbuttons ─────────────────────
 with col_panel:
-    st.markdown('<div class="ovhd-panel"><div class="panel-title">ENG START PANEL</div>',
+    st.markdown('<div class="panel-marker"></div>'
+                '<div class="panel-title">ENG START PANEL</div>',
                 unsafe_allow_html=True)
     off = ss.eng_state == 'OFF'
 
@@ -119,7 +120,6 @@ with col_panel:
                                  disabled=not off,
                                  help='Inject a start fault while OFF.')
     ss.speed = st.select_slider('SPEED', options=[1, 5, 10], value=ss.speed)
-    st.markdown('</div>', unsafe_allow_html=True)
 
 mode, master, bleed = ss.mode, ss.master, ss.bleed
 
