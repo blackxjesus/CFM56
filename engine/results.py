@@ -48,6 +48,18 @@ class EngineResults:
 
 @dataclass
 class StartTransient:
+    """Recorded data from a single engine-start simulation run.
+
+    The six signal lists (``t``, ``N1``, ``N2``, ``EGT``, ``FF``, ``thrust``)
+    and the system-state lists (``start_valve``, ``igniter``, ``eng_mode``,
+    ``master``) are populated in lockstep — one entry is appended per
+    simulation timestep — so they always remain equal length.
+    ``events`` and ``faults`` are independent logs and may have any length.
+
+    Note: ``FF`` is in kg/h (display units), which is distinct from
+    ``EngineResults.fuel_flow`` that is expressed in kg/s.
+    """
+
     scenario: str
     t: List[float] = field(default_factory=list)        # s
     N1: List[float] = field(default_factory=list)       # %
@@ -64,6 +76,9 @@ class StartTransient:
 
     def to_dataframe(self):
         import pandas as pd
+        n = len(self.t)
+        assert all(len(x) == n for x in (self.N1, self.N2, self.EGT, self.FF, self.thrust)), \
+            "StartTransient signal lists must be equal length"
         return pd.DataFrame({
             't': self.t, 'N1': self.N1, 'N2': self.N2,
             'EGT': self.EGT, 'FF': self.FF, 'thrust': self.thrust,
