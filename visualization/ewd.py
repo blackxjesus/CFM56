@@ -84,42 +84,36 @@ def ewd_svg(n1, egt, n2, ff, status_text, status_color, fob_kg=12000):
     n1_marks = [(0.545, '6'), (0.909, '10')]
 
     parts = [
-        '<svg viewBox="0 0 470 470" width="100%" xmlns="http://www.w3.org/2000/svg">',
-        '<rect x="3" y="3" width="464" height="464" rx="10" fill="#070a07" '
+        '<svg viewBox="0 0 460 330" width="100%" xmlns="http://www.w3.org/2000/svg">',
+        '<rect x="3" y="3" width="454" height="324" rx="10" fill="#070a07" '
         'stroke="#2a2f2a" stroke-width="2"/>',
-        # column labels
-        '<text x="235" y="70" text-anchor="middle" font-size="13" fill="' + CYAN +
+        # ── N1 row: two gauges + centre label + centre N2 readout ──
+        '<text x="230" y="40" text-anchor="middle" font-size="13" fill="' + CYAN +
         '" font-family="monospace">N1</text>'
-        '<text x="235" y="86" text-anchor="middle" font-size="11" fill="' + CYAN +
+        '<text x="230" y="55" text-anchor="middle" font-size="10" fill="' + CYAN +
         '" font-family="monospace">%</text>',
-        # N1 gauges
-        _gauge(118, 95, 50, n1 / 110.0, 100 / 110.0, n1_v, GREEN, n1_marks),
-        _gauge(352, 95, 50, n1 / 110.0, 100 / 110.0, n1_v, GREEN, n1_marks),
-        # EGT label + gauges
-        '<text x="235" y="205" text-anchor="middle" font-size="13" fill="' + CYAN +
-        '" font-family="monospace">EGT</text>'
-        '<text x="235" y="221" text-anchor="middle" font-size="11" fill="' + CYAN +
-        '" font-family="monospace">&#176;C</text>',
-        _gauge(118, 215, 48, egt / 1000.0, 0.9, egt_v, egt_col),
-        _gauge(352, 215, 48, egt / 1000.0, 0.9, egt_v, egt_col),
-        # N2 row
-        '<text x="235" y="312" text-anchor="middle" font-size="12" fill="' + CYAN +
+        _gauge(108, 80, 44, n1 / 110.0, 100 / 110.0, n1_v, GREEN, n1_marks),
+        _gauge(352, 80, 44, n1 / 110.0, 100 / 110.0, n1_v, GREEN, n1_marks),
+        # centre N2
+        '<text x="230" y="100" text-anchor="middle" font-size="11" fill="' + CYAN +
         '" font-family="monospace">N2 %</text>',
-        _digital(118, 310, n2_v, GREEN),
-        _digital(352, 310, n2_v, GREEN),
-        # FF row
-        '<text x="235" y="356" text-anchor="middle" font-size="12" fill="' + CYAN +
-        '" font-family="monospace">FF</text>'
-        '<text x="235" y="370" text-anchor="middle" font-size="10" fill="' + CYAN +
-        '" font-family="monospace">KG/H</text>',
-        _digital(118, 358, ff_v, GREEN),
-        _digital(352, 358, ff_v, GREEN),
-        # status boxes
-        _status_box(118, 410, status_text, status_color),
-        _status_box(352, 410, status_text, status_color),
-        # FOB
-        f'<line x1="40" y1="435" x2="430" y2="435" stroke="#2a2f2a" stroke-width="1"/>'
-        f'<text x="235" y="455" text-anchor="middle" font-size="13" fill="{CYAN}" '
+        _digital(230, 122, n2_v, GREEN),
+        # ── EGT row: two gauges + centre label + centre FF readout ──
+        '<text x="230" y="185" text-anchor="middle" font-size="13" fill="' + CYAN +
+        '" font-family="monospace">EGT</text>'
+        '<text x="230" y="200" text-anchor="middle" font-size="10" fill="' + CYAN +
+        '" font-family="monospace">&#176;C</text>',
+        _gauge(108, 205, 42, egt / 1000.0, 0.9, egt_v, egt_col),
+        _gauge(352, 205, 42, egt / 1000.0, 0.9, egt_v, egt_col),
+        # centre FF
+        '<text x="230" y="232" text-anchor="middle" font-size="11" fill="' + CYAN +
+        '" font-family="monospace">FF KG/H</text>',
+        _digital(230, 254, ff_v, GREEN),
+        # ── status boxes + FOB ──
+        _status_box(108, 290, status_text, status_color),
+        _status_box(352, 290, status_text, status_color),
+        f'<line x1="36" y1="306" x2="424" y2="306" stroke="#2a2f2a" stroke-width="1"/>'
+        f'<text x="230" y="322" text-anchor="middle" font-size="12" fill="{CYAN}" '
         f'font-family="monospace">FOB: <tspan fill="{GREEN}">{round(fob_kg)}</tspan> KG</text>',
         '</svg>',
     ]
