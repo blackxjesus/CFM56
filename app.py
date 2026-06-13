@@ -19,7 +19,7 @@ from visualization.station_diagram import plot_station_diagram
 from visualization.ts_diagram import plot_ts_diagram
 from visualization.model_3d import plot_3d_model
 from visualization.ecam import ecam_rows_starting, ecam_rows_running, render_ecam
-from visualization.airbus_panel import PANEL_CSS
+from visualization.airbus_panel import PANEL_CSS, rotary_html, fire_fault_html
 from engine import simulate_start, StartScenario, CockpitConfig, EngMode
 from engine.playback import step_playback
 
@@ -87,8 +87,16 @@ with col_panel:
                 unsafe_allow_html=True)
     off = ss.eng_state == 'OFF'
 
-    # ENG MODE rotary — three detented pushbuttons; selected one is lit
+    # ENG MASTER 1 — white "ENG 1" switch cap, lit green when ON
+    st.markdown('<div class="ap-label">ENG MASTER 1</div>', unsafe_allow_html=True)
+    if st.button('ENG 1  ' + ('● ON' if ss.master else '○ OFF'), key='b_master',
+                 type='primary' if ss.master else 'secondary'):
+        ss.master = not ss.master
+        st.rerun()
+
+    # ENG MODE — rotary knob graphic + position pushbuttons
     st.markdown('<div class="ap-label">ENG MODE</div>', unsafe_allow_html=True)
+    st.markdown(rotary_html(ss.mode), unsafe_allow_html=True)
     mc1, mc2, mc3 = st.columns(3)
     for col, label in ((mc1, 'CRANK'), (mc2, 'NORM'), (mc3, 'IGN/START')):
         with col:
@@ -97,19 +105,14 @@ with col_panel:
                 ss.mode = label
                 st.rerun()
 
-    # ENG MASTER 1 — lit ON / dark OFF
-    st.markdown('<div class="ap-label">ENG MASTER 1</div>', unsafe_allow_html=True)
-    if st.button('● ON' if ss.master else '○ OFF', key='b_master',
-                 type='primary' if ss.master else 'secondary'):
-        ss.master = not ss.master
-        st.rerun()
-
-    # APU BLEED — lit ON / dark OFF
+    # APU BLEED — white switch cap, lit green when ON
     st.markdown('<div class="ap-label">APU BLEED</div>', unsafe_allow_html=True)
     if st.button('● ON' if ss.bleed else '○ OFF', key='b_bleed',
                  type='primary' if ss.bleed else 'secondary'):
         ss.bleed = not ss.bleed
         st.rerun()
+
+    st.markdown(fire_fault_html(), unsafe_allow_html=True)
 
     scenario_name = st.selectbox('SCENARIO (MAINT)',
                                  ['NORMAL', 'HUNG', 'HOT', 'NO_FUEL', 'NO_IGNITION'],
