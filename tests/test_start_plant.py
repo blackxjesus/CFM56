@@ -1,5 +1,4 @@
 # tests/test_start_plant.py
-import math
 import pytest
 from engine.start_transient import PlantParams, StartScenario, scenario_params, ff_frac
 
