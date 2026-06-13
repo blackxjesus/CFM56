@@ -198,6 +198,13 @@ else:  # 🔥 Engine Start
     cockpit = CockpitConfig(mode=mode_map[mode], master_on=master, bleed_available=bleed)
     scenario = StartScenario[scenario_name]
 
+    # NOTE: we intentionally do NOT anchor the idle end-state to the lookup
+    # table. The lookup's lowest-throttle point keeps the full design mass flow,
+    # so its "idle" thrust (~109 kN) and fuel flow are not true ground-idle
+    # values. PlantParams' defaults (~5 kN, ~600 kg/h) represent realistic
+    # ground idle, so the transient model uses those. The
+    # idle_anchor_from_results() helper remains available for a future lookup
+    # that contains a genuine sub-idle point.
     st_data = simulate_start(scenario, cockpit)
 
     if not st_data.t:

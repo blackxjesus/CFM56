@@ -155,6 +155,24 @@ selected flight phase.
 - NO_FUEL: EGT stays ambient, N2 plateaus at motoring speed, FF = 0.
 - NO_IGNITION: FF > 0 but EGT ambient + wet-start flag.
 
+## 6a. Implementation deviations (recorded post-build)
+
+- **Single `igniter` field instead of `igniter_a`/`igniter_b`.** In the A320 NORM
+  automatic start both igniters energize together, so a single boolean (rendered
+  as "IGN A/B" on the ECAM) captures the observable behavior. Splitting into two
+  fields would add state with no modelled difference.
+- **Idle end-state uses `PlantParams` defaults, not the lookup table.** The
+  precomputed `lookup.pkl` was generated with a T4-override design model that
+  keeps the full design mass flow even at the lowest throttle, so its
+  "idle" point reports ~109 kN thrust / ~3257 kg/h — not true ground idle. The
+  `PlantParams` defaults (~5 kN, ~600 kg/h) are physically realistic ground-idle
+  values, so the transient model uses those. `idle_anchor_from_results()` and the
+  `simulate_start(idle_anchor=...)` parameter remain available for a future
+  lookup that contains a genuine sub-idle point.
+- **Forward-Euler integration at dt=0.5 s** rather than RK4. At this step size and
+  the model's time constants the difference is negligible; Euler keeps the loop
+  simple and the idle equilibrium is exact by construction.
+
 ## 7. Out of scope (YAGNI)
 
 - Manual start mode (crew-timed fuel) — not included (Auto + CRANK only).
