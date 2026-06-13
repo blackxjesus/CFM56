@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 from visualization.station_diagram import plot_station_diagram
 from visualization.ts_diagram import plot_ts_diagram
 from visualization.model_3d import plot_3d_model
-from visualization.ecam import estimate_n1, estimate_n2
+from visualization.ecam import estimate_n1, estimate_n2, compute_epr
 from visualization.ewd import ewd_svg
 from visualization.airbus_panel import PANEL_CSS, panel_image, hit_test
 from streamlit_image_coordinates import streamlit_image_coordinates
@@ -200,6 +200,24 @@ if ss.eng_state == 'RUNNING':
         T4 = 1000.0 + throttle * 7.0
         st.caption(f'T4 = {T4:.0f} K')
     result = lookup[(phase, throttle)]
+
+    # ── Engine performance parameters ───────────────────────────────────
+    epr = compute_epr(result) or 1.0
+    st.markdown('**Engine parameters**')
+    m1, m2, m3, m4, m5, m6 = st.columns(6)
+    m1.metric('Thrust', f'{result.thrust_kN:.1f} kN')
+    m2.metric('EPR', f'{epr:.3f}')
+    m3.metric('OPR', f'{result.opr:.2f}')
+    m4.metric('BPR', f'{result.bpr:.2f}')
+    m5.metric('SFC', f'{result.sfc:.5f}', help='kg/(kN·s)')
+    m6.metric('Fuel flow', f'{result.fuel_flow * 3600:.0f} kg/h')
+
+    with st.expander('Station thermodynamics (T, P, h)'):
+        df = result.to_dataframe().rename(columns={
+            'station': 'Station', 'T_K': 'T [K]', 'P_kPa': 'P [kPa]', 'h_kJkg': 'h [kJ/kg]'})
+        st.dataframe(df.style.format({'T [K]': '{:.1f}', 'P [kPa]': '{:.1f}',
+                                      'h [kJ/kg]': '{:.1f}'}),
+                     use_container_width=True, hide_index=True)
 
     tab1, tab2, tab3 = st.tabs(['📊 Station Diagram', '🌡️ T-s Diagram', '🔩 3D Model'])
     with tab1:
