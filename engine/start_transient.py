@@ -168,10 +168,10 @@ def simulate_start(scenario, cockpit, idle_anchor=None, dt=0.5, t_max=180.0,
         if fuel_cmd and not lit:
             nolight_timer += dt
             if nolight_timer >= 10.0:
-                if ff > 0.0 and 'WET START' not in st.faults:
+                if ff > 1e-6 and 'WET START' not in st.faults:
                     st.faults.append('WET START')
                     log('WET START')
-                elif ff == 0.0 and 'NO LIGHT-OFF' not in st.faults:
+                elif ff <= 1e-6 and 'NO LIGHT-OFF' not in st.faults:
                     st.faults.append('NO LIGHT-OFF')
                     log('NO LIGHT-OFF')
         else:
