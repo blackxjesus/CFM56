@@ -70,6 +70,7 @@ def begin_start(mode_label, master_on, bleed, scenario_name):
     ss.start_data = simulate_start(StartScenario[scenario_name], cockpit)
     ss.frame = 0.0
     ss.eng_state = 'STARTING'
+    ss.started_scenario = scenario_name
 
 def shutdown():
     ss.eng_state = 'OFF'
@@ -107,13 +108,15 @@ with col_panel:
             st.rerun()
     st.caption('Click the panel: ENG 1 switch · MODE knob · APU BLEED')
 
-    scenario_name = st.selectbox('SCENARIO (MAINT)',
-                                 ['NORMAL', 'HUNG', 'HOT', 'NO_FUEL', 'NO_IGNITION'],
-                                 disabled=not off,
-                                 help='Inject a start fault while OFF.')
+    st.selectbox('SCENARIO (MAINT)',
+                 ['NORMAL', 'HUNG', 'HOT', 'NO_FUEL', 'NO_IGNITION'],
+                 key='scenario',
+                 help='Pick a start fault, then start the engine. Changing it '
+                      'while the engine is running restarts the start with that fault.')
     ss.speed = st.select_slider('SPEED', options=[1, 5, 10], value=ss.speed)
 
 mode, master, bleed = ss.mode, ss.master, ss.bleed
+scenario_name = ss.scenario
 
 # Decide whether to begin / shutdown based on control state
 def start_armed():
@@ -126,6 +129,11 @@ def start_armed():
     return False
 
 if ss.eng_state == 'OFF' and start_armed():
+    begin_start(mode, master, bleed, scenario_name)
+    st.rerun()
+elif (ss.eng_state != 'OFF' and start_armed()
+      and scenario_name != ss.get('started_scenario')):
+    # fault changed while the engine is active -> restart the start with it
     begin_start(mode, master, bleed, scenario_name)
     st.rerun()
 elif ss.eng_state == 'STARTING' and not start_armed():
