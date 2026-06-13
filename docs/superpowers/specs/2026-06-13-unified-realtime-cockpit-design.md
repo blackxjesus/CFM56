@@ -116,16 +116,21 @@ The existing `ecam_html` and `start_ecam_html` move into `visualization/ecam.py`
 ## 8. `step_playback` contract
 
 ```python
-def step_playback(eng_state, frame, n_frames, speed, tick_dt, sim_dt, has_faults):
+def step_playback(eng_state, frame, n_frames, speed, tick_dt, sim_dt, terminal_state):
     """Advance the start playback by one wall-clock tick.
 
     Returns (new_eng_state, new_frame).
     - Only advances when eng_state == 'STARTING'; otherwise returns inputs unchanged.
     - new_frame = min(frame + speed*tick_dt/sim_dt, n_frames-1).
-    - When frame reaches the last index: new_eng_state = 'FAULT' if has_faults
-      else 'RUNNING'.
+    - When frame reaches the last index: new_eng_state = terminal_state (caller-decided).
     """
 ```
+
+`terminal_state` is computed by the caller from the `StartTransient`:
+`'FAULT'` if faults present, `'RUNNING'` if it reached idle (N2 ≥ 0.95·idle), else
+`'STARTING'` (hold at the last frame — e.g. CRANK dry-motoring, which never reaches
+idle and is not a fault). This generalization lets CRANK hold at its plateau rather
+than false-transitioning to RUNNING.
 
 States are the string literals `'OFF' | 'STARTING' | 'RUNNING' | 'FAULT'`.
 
