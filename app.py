@@ -19,7 +19,8 @@ from visualization.station_diagram import plot_station_diagram
 from visualization.ts_diagram import plot_ts_diagram
 from visualization.model_3d import plot_3d_model
 from visualization.ecam import ecam_rows_starting, ecam_rows_running, render_ecam
-from visualization.airbus_panel import PANEL_CSS, panel_svg
+from visualization.airbus_panel import PANEL_CSS, panel_image, hit_test
+from streamlit_image_coordinates import streamlit_image_coordinates
 from engine import simulate_start, StartScenario, CockpitConfig, EngMode
 from engine.playback import step_playback
 
@@ -88,30 +89,23 @@ with col_panel:
                 unsafe_allow_html=True)
     off = ss.eng_state == 'OFF'
 
-    # Faithful ENG panel SVG (display) — reflects mode + ENG 1 master state
-    components.html(panel_svg(ss.mode, ss.master), height=270)
-
-    # ── Controls that drive the panel state ──────────────────────────────
-    st.markdown('<div class="ap-label">ENG MASTER 1</div>', unsafe_allow_html=True)
-    if st.button('ENG 1  ' + ('● ON' if ss.master else '○ OFF'), key='b_master',
-                 type='primary' if ss.master else 'secondary'):
-        ss.master = not ss.master
-        st.rerun()
-
-    st.markdown('<div class="ap-label">ENG MODE</div>', unsafe_allow_html=True)
-    mc1, mc2, mc3 = st.columns(3)
-    for col, label in ((mc1, 'CRANK'), (mc2, 'NORM'), (mc3, 'IGN/START')):
-        with col:
-            if st.button(label, key=f'b_{label}',
-                         type='primary' if ss.mode == label else 'secondary'):
-                ss.mode = label
-                st.rerun()
-
-    st.markdown('<div class="ap-label">APU BLEED</div>', unsafe_allow_html=True)
-    if st.button('● ON' if ss.bleed else '○ OFF', key='b_bleed',
-                 type='primary' if ss.bleed else 'secondary'):
-        ss.bleed = not ss.bleed
-        st.rerun()
+    # Clickable ENG panel image — click the ENG 1 switch / MODE knob / APU BLEED
+    img = panel_image(ss.mode, ss.master, ss.bleed)
+    key = f"engpanel_{ss.get('click_seq', 0)}"
+    click = streamlit_image_coordinates(img, key=key)
+    if click is not None:
+        hit = hit_test(click['x'], click['y'])
+        if hit:
+            ss.click_seq = ss.get('click_seq', 0) + 1   # remount -> allow repeat clicks
+            if hit == 'master':
+                ss.master = not ss.master
+            elif hit == 'bleed':
+                ss.bleed = not ss.bleed
+            elif hit == 'mode':
+                order = ['CRANK', 'NORM', 'IGN/START']
+                ss.mode = order[(order.index(ss.mode) + 1) % len(order)]
+            st.rerun()
+    st.caption('Click the panel: ENG 1 switch · MODE knob · APU BLEED')
 
     scenario_name = st.selectbox('SCENARIO (MAINT)',
                                  ['NORMAL', 'HUNG', 'HOT', 'NO_FUEL', 'NO_IGNITION'],
