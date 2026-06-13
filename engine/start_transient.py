@@ -152,6 +152,36 @@ def simulate_start(scenario, cockpit, idle_anchor=None, dt=0.5, t_max=180.0,
 
         rate = dN2_dt(N2, lit, valve, p, sp['ff_cap'], sp['bleed_factor'])
 
+        # --- fault detection (detect-only) ---
+        if egt_v > p.egt_redline and 'EGT EXCEEDANCE' not in st.faults:
+            st.faults.append('EGT EXCEEDANCE')
+            log('EGT EXCEEDANCE')
+
+        if lit and N2 < 0.95 * p.idle_N2 and abs(rate) < 0.05:
+            hung_timer += dt
+            if hung_timer >= 8.0 and 'HUNG START' not in st.faults:
+                st.faults.append('HUNG START')
+                log('HUNG START')
+        else:
+            hung_timer = 0.0
+
+        if fuel_cmd and not lit:
+            nolight_timer += dt
+            if nolight_timer >= 10.0:
+                if ff > 0.0 and 'WET START' not in st.faults:
+                    st.faults.append('WET START')
+                    log('WET START')
+                elif ff == 0.0 and 'NO LIGHT-OFF' not in st.faults:
+                    st.faults.append('NO LIGHT-OFF')
+                    log('NO LIGHT-OFF')
+        else:
+            nolight_timer = 0.0
+
+        # stop if a stable fault has been latched and spool is settled
+        stuck = abs(rate) < 0.02 and N2 < 0.95 * p.idle_N2
+        if st.faults and stuck and t > 20.0:
+            break
+
         if N2 >= 0.99 * p.idle_N2:
             log('IDLE')
             break
