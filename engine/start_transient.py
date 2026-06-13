@@ -20,7 +20,7 @@ class StartScenario(Enum):
 
 @dataclass
 class PlantParams:
-    inertia: float = 25.0
+    inertia: float = 10.0
     k_drag: float = 1.0
     starter_torque: float = 40.0
     starter_cutout: float = 50.0
@@ -89,3 +89,73 @@ def derived_outputs(N2, lit, fuel_flowing, ff_cap, p):
     thrust = p.idle_thrust * frac ** 3
     ff = ff_frac(N2, ff_cap, p) * p.idle_FF if (lit or fuel_flowing) else 0.0
     return n1, thrust, ff
+
+
+def _idle_defaults(p):
+    return {'idle_N2': p.idle_N2, 'idle_N1': p.idle_N1, 'idle_EGT': p.idle_EGT,
+            'idle_FF': p.idle_FF, 'idle_thrust': p.idle_thrust}
+
+
+def simulate_start(scenario, cockpit, idle_anchor=None, dt=0.5, t_max=180.0,
+                   params=None):
+    from engine.results import StartTransient
+    from engine.fadec import fadec_commands
+
+    p = params or PlantParams()
+    if idle_anchor:
+        for k, v in idle_anchor.items():
+            if hasattr(p, k):
+                setattr(p, k, v)
+    sp = scenario_params(scenario)
+
+    st = StartTransient(scenario=scenario.value)
+    N2 = 0.0
+    lit = False
+    t = 0.0
+    seen = set()
+    hung_timer = 0.0
+    nolight_timer = 0.0
+
+    def log(label):
+        if label not in seen:
+            seen.add(label)
+            st.events.append((round(t, 1), label))
+
+    while t <= t_max:
+        cmd = fadec_commands(N2, cockpit, p)
+        valve, fuel_cmd, ign_cmd = cmd['valve_open'], cmd['fuel_cmd'], cmd['ignition_cmd']
+
+        can_light = (N2 >= p.lightoff_N2 and fuel_cmd and ign_cmd
+                     and sp['fuel_valve_ok'] and sp['igniter_ok'])
+        if can_light and not lit:
+            lit = True
+            log('LIGHT-OFF')
+
+        fuel_flowing = fuel_cmd and sp['fuel_valve_ok']
+        n1, thrust, ff = derived_outputs(N2, lit, fuel_flowing, sp['ff_cap'], p)
+        if not sp['fuel_valve_ok']:
+            ff = 0.0
+        egt_v = egt(N2, lit, sp['fuel_mult'], p)
+
+        st.t.append(round(t, 3)); st.N1.append(n1); st.N2.append(N2)
+        st.EGT.append(egt_v); st.FF.append(ff); st.thrust.append(thrust)
+        st.start_valve.append(valve); st.igniter.append(bool(ign_cmd))
+        st.eng_mode.append(cockpit.mode.value); st.master.append(cockpit.master_on)
+
+        if valve:
+            log('STARTER ON')
+        if ign_cmd:
+            log('IGNITION ON')
+        if 'STARTER ON' in seen and not valve and N2 >= p.lightoff_N2:
+            log('STARTER CUTOUT')
+
+        rate = dN2_dt(N2, lit, valve, p, sp['ff_cap'], sp['bleed_factor'])
+
+        if N2 >= 0.99 * p.idle_N2:
+            log('IDLE')
+            break
+
+        N2 = max(0.0, N2 + rate * dt)
+        t += dt
+
+    return st
