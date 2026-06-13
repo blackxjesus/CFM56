@@ -190,3 +190,13 @@ def simulate_start(scenario, cockpit, idle_anchor=None, dt=0.5, t_max=180.0,
         t += dt
 
     return st
+
+
+def idle_anchor_from_results(result):
+    """Build an idle-anchor dict from an EngineResults idle point.
+
+    Only thrust and fuel flow are reliably transferable; N2/N1/EGT idle
+    targets stay at PlantParams defaults unless explicitly provided.
+    """
+    return {'idle_thrust': float(result.thrust_kN),
+            'idle_FF': float(result.fuel_flow) * 3600.0}
