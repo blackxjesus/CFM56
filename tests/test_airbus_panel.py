@@ -9,6 +9,9 @@ def test_panel_css_is_style_block():
 
 
 def test_panel_css_targets_expected_widgets():
-    assert 'stRadio' in PANEL_CSS
-    assert 'stToggle' in PANEL_CSS
+    # Controls are styled st.button widgets (illuminated Airbus pushbuttons),
+    # with a lit 'primary' state and the panel frame / legend classes.
+    assert 'stButton' in PANEL_CSS
+    assert 'kind="primary"' in PANEL_CSS
     assert 'ovhd-panel' in PANEL_CSS
+    assert 'ap-label' in PANEL_CSS

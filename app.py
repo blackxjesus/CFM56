@@ -49,6 +49,9 @@ ss.setdefault('eng_state', 'OFF')      # OFF | STARTING | RUNNING | FAULT
 ss.setdefault('frame', 0.0)
 ss.setdefault('start_data', None)
 ss.setdefault('speed', 10)
+ss.setdefault('mode', 'NORM')          # CRANK | NORM | IGN/START
+ss.setdefault('master', False)
+ss.setdefault('bleed', True)
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
 def terminal_state_for(sd):
@@ -78,21 +81,44 @@ st.caption('Termodinamikai szimulátor · Nyíregyházi Egyetem · Repülőmérn
 
 col_panel, col_ecam = st.columns([1, 1])
 
-# ── Airbus ENG panel (left) ──────────────────────────────────────────────
+# ── Airbus ENG panel (left) — illuminated pushbuttons ─────────────────────
 with col_panel:
-    st.markdown('<div class="ovhd-panel"><div class="panel-title">ENG</div>',
+    st.markdown('<div class="ovhd-panel"><div class="panel-title">ENG START PANEL</div>',
                 unsafe_allow_html=True)
     off = ss.eng_state == 'OFF'
-    mode = st.radio('ENG MODE', ['CRANK', 'NORM', 'IGN/START'], index=1,
-                    horizontal=True, key='eng_mode')
-    master = st.toggle('ENG MASTER 1', key='master')
-    bleed = st.toggle('APU BLEED', value=True, key='bleed')
+
+    # ENG MODE rotary — three detented pushbuttons; selected one is lit
+    st.markdown('<div class="ap-label">ENG MODE</div>', unsafe_allow_html=True)
+    mc1, mc2, mc3 = st.columns(3)
+    for col, label in ((mc1, 'CRANK'), (mc2, 'NORM'), (mc3, 'IGN/START')):
+        with col:
+            if st.button(label, key=f'b_{label}',
+                         type='primary' if ss.mode == label else 'secondary'):
+                ss.mode = label
+                st.rerun()
+
+    # ENG MASTER 1 — lit ON / dark OFF
+    st.markdown('<div class="ap-label">ENG MASTER 1</div>', unsafe_allow_html=True)
+    if st.button('● ON' if ss.master else '○ OFF', key='b_master',
+                 type='primary' if ss.master else 'secondary'):
+        ss.master = not ss.master
+        st.rerun()
+
+    # APU BLEED — lit ON / dark OFF
+    st.markdown('<div class="ap-label">APU BLEED</div>', unsafe_allow_html=True)
+    if st.button('● ON' if ss.bleed else '○ OFF', key='b_bleed',
+                 type='primary' if ss.bleed else 'secondary'):
+        ss.bleed = not ss.bleed
+        st.rerun()
+
     scenario_name = st.selectbox('SCENARIO (MAINT)',
                                  ['NORMAL', 'HUNG', 'HOT', 'NO_FUEL', 'NO_IGNITION'],
                                  disabled=not off,
                                  help='Inject a start fault while OFF.')
     ss.speed = st.select_slider('SPEED', options=[1, 5, 10], value=ss.speed)
     st.markdown('</div>', unsafe_allow_html=True)
+
+mode, master, bleed = ss.mode, ss.master, ss.bleed
 
 # Decide whether to begin / shutdown based on control state
 def start_armed():
