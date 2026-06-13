@@ -16,7 +16,7 @@ These are the agreed numeric constants and formulas. Use them verbatim.
 
 **Plant constants (`PlantParams` defaults):**
 ```
-inertia          = 25.0     # spool inertia scale (sets time constant)
+inertia          = 10.0     # spool inertia scale (sets time constant; ~60 s to idle)
 k_drag           = 1.0      # linear drag coefficient
 starter_torque   = 40.0     # starter torque scale at N2=0
 starter_cutout   = 50.0     # % N2 where starter cuts out
