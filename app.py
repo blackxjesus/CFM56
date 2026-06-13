@@ -18,7 +18,8 @@ import matplotlib.pyplot as plt
 from visualization.station_diagram import plot_station_diagram
 from visualization.ts_diagram import plot_ts_diagram
 from visualization.model_3d import plot_3d_model
-from visualization.ecam import ecam_rows_starting, ecam_rows_running, render_ecam
+from visualization.ecam import estimate_n1, estimate_n2
+from visualization.ewd import ewd_svg
 from visualization.airbus_panel import PANEL_CSS, panel_image, hit_test
 from streamlit_image_coordinates import streamlit_image_coordinates
 from engine import simulate_start, StartScenario, CockpitConfig, EngMode
@@ -143,15 +144,12 @@ elif ss.eng_state in ('RUNNING', 'FAULT') and not master and mode != 'CRANK':
     shutdown()
     st.rerun()
 
-# ── ECAM + animation (right) ────────────────────────────────────────────
+# ── ECAM E/WD (right) ────────────────────────────────────────────────────
+_GRN, _AMB, _RED = '#2bd92b', '#ffaa00', '#ff3b30'
+
 with col_ecam:
     if ss.eng_state == 'OFF':
-        components.html(render_ecam(
-            [(l, '---', '#555', u) for l, u in
-             [('N1', '%'), ('EGT', '°C'), ('N2', '%'), ('EPR', ''),
-              ('FF', 'KG/H'), ('THR', 'kN'), ('OPR', ''), ('SFC', 'kg/kN·s')]],
-            valve=False, igniter=False, events_line='ENGINE OFF',
-            title='ENGINE'), height=420)
+        components.html(ewd_svg(0, 0, 0, 0, 'READY FOR START', _GRN), height=490)
 
     elif ss.eng_state == 'STARTING':
         @st.fragment(run_every=TICK_DT)
@@ -162,12 +160,11 @@ with col_ecam:
                 ss.eng_state, ss.frame, len(sd.t), ss.speed, TICK_DT, SIM_DT, terminal)
             ss.frame = new_frame
             i = int(new_frame)
-            rows = ecam_rows_starting(sd, i)
+            status = 'CRANKING' if mode == 'CRANK' else 'STARTING'
+            components.html(ewd_svg(sd.N1[i], sd.EGT[i], sd.N2[i], sd.FF[i],
+                                    status, _AMB), height=490)
             ev = ' · '.join(f'{t:.0f}s {l}' for t, l in sd.events if t <= sd.t[i])
-            title = 'ENGINE · CRANK' if mode == 'CRANK' else 'ENGINE · START'
-            components.html(render_ecam(rows, valve=sd.start_valve[i],
-                                        igniter=sd.igniter[i], events_line=ev,
-                                        title=title), height=420)
+            st.caption(ev or '— standby —')
             if new_state != 'STARTING':
                 ss.eng_state = new_state
                 st.rerun()
@@ -176,21 +173,20 @@ with col_ecam:
     elif ss.eng_state == 'FAULT':
         sd = ss.start_data
         i = len(sd.t) - 1
-        rows = ecam_rows_starting(sd, i)
+        components.html(ewd_svg(sd.N1[i], sd.EGT[i], sd.N2[i], sd.FF[i],
+                                sd.faults[0], _RED), height=490)
         ev = ' · '.join(f'{t:.0f}s {l}' for t, l in sd.events)
-        components.html(render_ecam(rows, valve=sd.start_valve[i],
-                                    igniter=sd.igniter[i], events_line=ev,
-                                    title='ENGINE · FAULT'), height=420)
+        st.caption(ev)
         st.error('FADEC: ' + ', '.join(sd.faults) + ' — set ENG MASTER OFF to clear.')
 
     elif ss.eng_state == 'RUNNING':
         throttle = ss.get('throttle', 0)
         phase = ss.get('phase', FLIGHT_PHASES[0])
         result = lookup[(phase, throttle)]
-        components.html(render_ecam(ecam_rows_running(result, throttle),
-                                    valve=False, igniter=False,
-                                    events_line='ENGINE RUNNING',
-                                    title='ENGINE'), height=420)
+        egt_st = result.stations.get('S5_lpt_exit')
+        egt_c = (egt_st.T - 273.15) if egt_st else 0.0
+        components.html(ewd_svg(estimate_n1(throttle), egt_c, estimate_n2(throttle),
+                                result.fuel_flow * 3600, '', _GRN), height=490)
 
 # ── RUNNING controls + diagrams ─────────────────────────────────────────
 if ss.eng_state == 'RUNNING':
