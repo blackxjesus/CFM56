@@ -149,7 +149,7 @@ _GRN, _AMB, _RED = '#2bd92b', '#ffaa00', '#ff3b30'
 
 with col_ecam:
     if ss.eng_state == 'OFF':
-        components.html(ewd_svg(0, 0, 0, 0, 'READY FOR START', _GRN), height=360)
+        components.html(ewd_svg(0, 0, 0, 0, 'READY FOR START', _GRN), height=440)
 
     elif ss.eng_state == 'STARTING':
         @st.fragment(run_every=TICK_DT)
@@ -162,7 +162,7 @@ with col_ecam:
             i = int(new_frame)
             status = 'CRANKING' if mode == 'CRANK' else 'STARTING'
             components.html(ewd_svg(sd.N1[i], sd.EGT[i], sd.N2[i], sd.FF[i],
-                                    status, _AMB), height=360)
+                                    status, _AMB), height=440)
             ev = ' · '.join(f'{t:.0f}s {l}' for t, l in sd.events if t <= sd.t[i])
             st.caption(ev or '— standby —')
             if new_state != 'STARTING':
@@ -174,7 +174,7 @@ with col_ecam:
         sd = ss.start_data
         i = len(sd.t) - 1
         components.html(ewd_svg(sd.N1[i], sd.EGT[i], sd.N2[i], sd.FF[i],
-                                sd.faults[0], _RED), height=360)
+                                sd.faults[0], _RED), height=440)
         ev = ' · '.join(f'{t:.0f}s {l}' for t, l in sd.events)
         st.caption(ev)
         st.error('FADEC: ' + ', '.join(sd.faults) + ' — set ENG MASTER OFF to clear.')
@@ -186,7 +186,9 @@ with col_ecam:
         egt_st = result.stations.get('S5_lpt_exit')
         egt_c = (egt_st.T - 273.15) if egt_st else 0.0
         components.html(ewd_svg(estimate_n1(throttle), egt_c, estimate_n2(throttle),
-                                result.fuel_flow * 3600, '', _GRN), height=360)
+                                result.fuel_flow * 3600, '', _GRN,
+                                epr=compute_epr(result), opr=result.opr,
+                                sfc=result.sfc, thr=result.thrust_kN), height=440)
 
 # ── RUNNING controls + diagrams ─────────────────────────────────────────
 if ss.eng_state == 'RUNNING':

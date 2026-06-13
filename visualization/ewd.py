@@ -64,6 +64,13 @@ def _digital(cx, cy, value, color):
             f'font-weight="bold" fill="{color}" font-family="monospace">{value}</text>')
 
 
+def _param(cx, cy, label, value):
+    return (f'<text x="{cx}" y="{cy}" text-anchor="middle" font-size="10" fill="{CYAN}" '
+            f'font-family="monospace">{label}</text>'
+            f'<text x="{cx}" y="{cy+17}" text-anchor="middle" font-size="14" '
+            f'font-weight="bold" fill="{GREEN}" font-family="monospace">{value}</text>')
+
+
 def _status_box(cx, cy, text, color):
     if not text:
         return ''
@@ -74,46 +81,70 @@ def _status_box(cx, cy, text, color):
             f'font-weight="bold" fill="{color}" font-family="monospace">{text}</text>')
 
 
-def ewd_svg(n1, egt, n2, ff, status_text, status_color, fob_kg=12000):
-    """Render the full dual-engine E/WD as an SVG string (data mirrored L/R)."""
+def ewd_svg(n1, egt, n2, ff, status_text, status_color, fob_kg=12000,
+            epr=None, opr=None, sfc=None, thr=None, n1_lim='TOGA'):
+    """Render the full dual-engine E/WD as an SVG string (data mirrored L/R).
+
+    n1/egt/n2/ff are the live primary parameters. epr/opr/sfc/thr are the steady
+    performance parameters (shown in the secondary row; '---' when None, i.e. not
+    available during start).
+    """
     n1_v = f'{n1:.1f}'
     egt_v = f'{round(egt)}'
     n2_v = f'{n2:.1f}'
     ff_v = f'{round(ff)}'
     egt_col = RED if egt > 725 else (AMBER if egt > 500 else GREEN)
     n1_marks = [(0.545, '6'), (0.909, '10')]
+    epr_v = f'{epr:.3f}' if epr is not None else '---'
+    opr_v = f'{opr:.2f}' if opr is not None else '---'
+    sfc_v = f'{sfc:.4f}' if sfc is not None else '---'
+    thr_v = f'{thr:.1f}' if thr is not None else '---'
+    idle = '<text x="230" y="28" text-anchor="middle" font-size="11" fill="' + GREEN + \
+        '" font-family="monospace">IDLE</text>' if 55 <= n2 <= 66 else ''
 
     parts = [
-        '<svg viewBox="0 0 460 330" width="100%" xmlns="http://www.w3.org/2000/svg">',
-        '<rect x="3" y="3" width="454" height="324" rx="10" fill="#070a07" '
+        '<svg viewBox="0 0 460 420" style="width:100%;max-width:440px;height:auto;'
+        'display:block;margin:0 auto" xmlns="http://www.w3.org/2000/svg">',
+        '<rect x="3" y="3" width="454" height="414" rx="10" fill="#070a07" '
         'stroke="#2a2f2a" stroke-width="2"/>',
-        # ── N1 row: two gauges + centre label + centre N2 readout ──
-        '<text x="230" y="40" text-anchor="middle" font-size="13" fill="' + CYAN +
+        # top annunciations: bleed config + N1 LIM mode
+        '<text x="120" y="26" text-anchor="middle" font-size="10" fill="' + CYAN +
+        '" font-family="monospace">PACKS/NAI/WAI</text>',
+        idle,
+        f'<text x="430" y="22" text-anchor="end" font-size="10" fill="{CYAN}" '
+        f'font-family="monospace">N1 LIM</text>'
+        f'<text x="430" y="36" text-anchor="end" font-size="12" font-weight="bold" '
+        f'fill="{GREEN}" font-family="monospace">{n1_lim}</text>',
+        # ── N1 row ──
+        '<text x="230" y="62" text-anchor="middle" font-size="13" fill="' + CYAN +
         '" font-family="monospace">N1</text>'
-        '<text x="230" y="55" text-anchor="middle" font-size="10" fill="' + CYAN +
+        '<text x="230" y="77" text-anchor="middle" font-size="10" fill="' + CYAN +
         '" font-family="monospace">%</text>',
-        _gauge(108, 80, 44, n1 / 110.0, 100 / 110.0, n1_v, GREEN, n1_marks),
-        _gauge(352, 80, 44, n1 / 110.0, 100 / 110.0, n1_v, GREEN, n1_marks),
-        # centre N2
-        '<text x="230" y="100" text-anchor="middle" font-size="11" fill="' + CYAN +
+        _gauge(108, 100, 44, n1 / 110.0, 100 / 110.0, n1_v, GREEN, n1_marks),
+        _gauge(352, 100, 44, n1 / 110.0, 100 / 110.0, n1_v, GREEN, n1_marks),
+        '<text x="230" y="118" text-anchor="middle" font-size="11" fill="' + CYAN +
         '" font-family="monospace">N2 %</text>',
-        _digital(230, 122, n2_v, GREEN),
-        # ── EGT row: two gauges + centre label + centre FF readout ──
-        '<text x="230" y="185" text-anchor="middle" font-size="13" fill="' + CYAN +
+        _digital(230, 140, n2_v, GREEN),
+        # ── EGT row ──
+        '<text x="230" y="205" text-anchor="middle" font-size="13" fill="' + CYAN +
         '" font-family="monospace">EGT</text>'
-        '<text x="230" y="200" text-anchor="middle" font-size="10" fill="' + CYAN +
+        '<text x="230" y="220" text-anchor="middle" font-size="10" fill="' + CYAN +
         '" font-family="monospace">&#176;C</text>',
-        _gauge(108, 205, 42, egt / 1000.0, 0.9, egt_v, egt_col),
-        _gauge(352, 205, 42, egt / 1000.0, 0.9, egt_v, egt_col),
-        # centre FF
-        '<text x="230" y="232" text-anchor="middle" font-size="11" fill="' + CYAN +
+        _gauge(108, 225, 42, egt / 1000.0, 0.9, egt_v, egt_col),
+        _gauge(352, 225, 42, egt / 1000.0, 0.9, egt_v, egt_col),
+        '<text x="230" y="252" text-anchor="middle" font-size="11" fill="' + CYAN +
         '" font-family="monospace">FF KG/H</text>',
-        _digital(230, 254, ff_v, GREEN),
+        _digital(230, 274, ff_v, GREEN),
+        # ── secondary performance params ──
+        f'<line x1="30" y1="300" x2="430" y2="300" stroke="#2a2f2a" stroke-width="1"/>',
+        _param(70, 322, 'EPR', epr_v),
+        _param(170, 322, 'THR kN', thr_v),
+        _param(290, 322, 'OPR', opr_v),
+        _param(395, 322, 'SFC', sfc_v),
         # ── status boxes + FOB ──
-        _status_box(108, 290, status_text, status_color),
-        _status_box(352, 290, status_text, status_color),
-        f'<line x1="36" y1="306" x2="424" y2="306" stroke="#2a2f2a" stroke-width="1"/>'
-        f'<text x="230" y="322" text-anchor="middle" font-size="12" fill="{CYAN}" '
+        _status_box(108, 365, status_text, status_color),
+        _status_box(352, 365, status_text, status_color),
+        f'<text x="230" y="402" text-anchor="middle" font-size="12" fill="{CYAN}" '
         f'font-family="monospace">FOB: <tspan fill="{GREEN}">{round(fob_kg)}</tspan> KG</text>',
         '</svg>',
     ]
