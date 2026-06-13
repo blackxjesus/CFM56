@@ -107,6 +107,9 @@ def start_armed():
 if ss.eng_state == 'OFF' and start_armed():
     begin_start(mode, master, bleed, scenario_name)
     st.rerun()
+elif ss.eng_state == 'STARTING' and not start_armed():
+    shutdown()
+    st.rerun()
 elif ss.eng_state in ('RUNNING', 'FAULT') and not master and mode != 'CRANK':
     shutdown()
     st.rerun()
