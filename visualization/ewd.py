@@ -103,8 +103,8 @@ def ewd_svg(n1, egt, n2, ff, status_text, status_color, fob_kg=12000,
         '" font-family="monospace">IDLE</text>' if 55 <= n2 <= 66 else ''
 
     parts = [
-        '<svg viewBox="0 0 460 420" style="width:100%;height:auto;display:block" '
-        'xmlns="http://www.w3.org/2000/svg">',
+        '<svg viewBox="0 0 460 420" style="width:100%;max-width:760px;height:auto;'
+        'display:block;margin:0 auto" xmlns="http://www.w3.org/2000/svg">',
         '<rect x="3" y="3" width="454" height="414" rx="10" fill="#070a07" '
         'stroke="#2a2f2a" stroke-width="2"/>',
         # top annunciations: bleed config + N1 LIM mode
