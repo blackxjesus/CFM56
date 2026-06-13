@@ -82,7 +82,7 @@ def shutdown():
 st.title('✈️ CFM56-5B Engine Simulator')
 st.caption('Termodinamikai szimulátor · Nyíregyházi Egyetem · Repülőmérnöki Szakdolgozat · DZRCRP')
 
-col_panel, col_ecam = st.columns([1, 1])
+col_panel, col_ecam = st.columns([1, 1.25])
 
 # ── Airbus ENG panel (left) — illuminated pushbuttons ─────────────────────
 with col_panel:
@@ -149,7 +149,7 @@ _GRN, _AMB, _RED = '#2bd92b', '#ffaa00', '#ff3b30'
 
 with col_ecam:
     if ss.eng_state == 'OFF':
-        components.html(ewd_svg(0, 0, 0, 0, 'READY FOR START', _GRN), height=440)
+        components.html(ewd_svg(0, 0, 0, 0, 'READY FOR START', _GRN), height=560)
 
     elif ss.eng_state == 'STARTING':
         @st.fragment(run_every=TICK_DT)
@@ -162,7 +162,7 @@ with col_ecam:
             i = int(new_frame)
             status = 'CRANKING' if mode == 'CRANK' else 'STARTING'
             components.html(ewd_svg(sd.N1[i], sd.EGT[i], sd.N2[i], sd.FF[i],
-                                    status, _AMB), height=440)
+                                    status, _AMB), height=560)
             ev = ' · '.join(f'{t:.0f}s {l}' for t, l in sd.events if t <= sd.t[i])
             st.caption(ev or '— standby —')
             if new_state != 'STARTING':
@@ -174,7 +174,7 @@ with col_ecam:
         sd = ss.start_data
         i = len(sd.t) - 1
         components.html(ewd_svg(sd.N1[i], sd.EGT[i], sd.N2[i], sd.FF[i],
-                                sd.faults[0], _RED), height=440)
+                                sd.faults[0], _RED), height=560)
         ev = ' · '.join(f'{t:.0f}s {l}' for t, l in sd.events)
         st.caption(ev)
         st.error('FADEC: ' + ', '.join(sd.faults) + ' — set ENG MASTER OFF to clear.')
@@ -188,7 +188,7 @@ with col_ecam:
         components.html(ewd_svg(estimate_n1(throttle), egt_c, estimate_n2(throttle),
                                 result.fuel_flow * 3600, '', _GRN,
                                 epr=compute_epr(result), opr=result.opr,
-                                sfc=result.sfc, thr=result.thrust_kN), height=440)
+                                sfc=result.sfc, thr=result.thrust_kN), height=560)
 
 # ── RUNNING controls + diagrams ─────────────────────────────────────────
 if ss.eng_state == 'RUNNING':
