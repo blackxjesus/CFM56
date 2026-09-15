@@ -10,10 +10,10 @@ from engine import run_design_point
 from visualization import plot_station_diagram, plot_3d_model
 
 if __name__ == '__main__':
-    print("CFM56-5B Design Point szimuláció — Felszállás")
+    print("CFM56-5B Design Point szimuláció — tengerszint, statikus felszállás")
     print("=" * 50)
 
-    result = run_design_point(flight_phase='takeoff', altitude_ft=0, mach=0.25)
+    result = run_design_point(flight_phase='design (SLS)', altitude_ft=0, mach=0.001)
     result.summary()
 
     print("\nÁllomás adatok:")

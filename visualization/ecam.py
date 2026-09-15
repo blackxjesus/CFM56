@@ -19,6 +19,13 @@ def estimate_n2(throttle):
     return 70.0 + 0.30 * throttle
 
 
+def spool_speeds(result, throttle):
+    """N1/N2 [%] from the off-design solution; empirical estimate as fallback."""
+    n1 = getattr(result, 'N1', 0.0) or estimate_n1(throttle)
+    n2 = getattr(result, 'N2', 0.0) or estimate_n2(throttle)
+    return n1, n2
+
+
 def egt_color(egt_c):
     if egt_c > 700:
         return '#ff3030'
@@ -54,10 +61,11 @@ def ecam_rows_running(result, throttle):
     egt_st = result.stations.get('S5_lpt_exit')
     egt_c = round(egt_st.T - 273.15) if egt_st else 0
     epr = compute_epr(result) or 1.0
+    n1, n2 = spool_speeds(result, throttle)
     return [
-        ('N1',  f'{estimate_n1(throttle):.1f}', '#00ff00',       '%'),
+        ('N1',  f'{n1:.1f}', '#00ff00',       '%'),
         ('EGT', str(egt_c),                      egt_color(egt_c), '°C'),
-        ('N2',  f'{estimate_n2(throttle):.1f}', '#00cc00',       '%'),
+        ('N2',  f'{n2:.1f}', '#00cc00',       '%'),
         ('EPR', f'{epr:.3f}',                    '#00ff00',       ''),
         ('FF',  str(round(result.fuel_flow * 3600)), '#00e000',  'KG/H'),
         ('THR', f'{result.thrust_kN:.1f}',       '#00e000',       'kN'),

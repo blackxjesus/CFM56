@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 from visualization.station_diagram import plot_station_diagram
 from visualization.ts_diagram import plot_ts_diagram
 from visualization.model_3d import plot_3d_model
-from visualization.ecam import estimate_n1, estimate_n2, compute_epr
+from visualization.ecam import spool_speeds, compute_epr
 from visualization.ewd import ewd_svg
 from visualization.start_plot import plot_start_transient
 from visualization.airbus_panel import PANEL_CSS, panel_image, hit_test
@@ -186,7 +186,8 @@ with col_ecam:
             phase = ss.get('phase', FLIGHT_PHASES[0])
             result = lookup[(phase, throttle)]
             egt_st = result.stations.get('S5_lpt_exit')
-            target = dict(N1=estimate_n1(throttle), N2=estimate_n2(throttle),
+            n1, n2 = spool_speeds(result, throttle)
+            target = dict(N1=n1, N2=n2,
                           EGT=(egt_st.T - 273.15) if egt_st else 0.0,
                           FF=result.fuel_flow * 3600)
             label = None
@@ -239,11 +240,17 @@ with c1:
     phase = st.selectbox('Flight Phase', FLIGHT_PHASES, key='phase')
     throttle = st.slider('Throttle [%]', 0, 100, ss.get('throttle', 0), step=5,
                          key='throttle',
-                         help='0% = idle (T4 ≈ 1000K) | 100% = TOGA (T4 = 1700K)')
+                         help='0% = T4 1000 K (low part power, not ground idle) | '
+                              '100% = TOGA (T4 = 1700 K)')
     T4 = 1000.0 + throttle * 7.0
-    st.caption(f'T4 = {T4:.0f} K   |   N1 ≈ {estimate_n1(throttle):.1f}%   |   '
-               f'N2 ≈ {estimate_n2(throttle):.1f}%')
 result = lookup[(phase, throttle)]
+n1_c, n2_c = spool_speeds(result, throttle)
+c1.caption(f'T4 = {T4:.0f} K   |   N1 = {n1_c:.1f}%   |   N2 = {n2_c:.1f}%   |   '
+           f'VBV = {getattr(result, "vbv_frac", 0.0) * 100:.0f}%   (off-design solution)')
+if getattr(result, 'validity', None):
+    c1.warning('Operating point outside the valid model range: '
+               + '; '.join(result.validity)
+               + '. The real FADEC would limit thrust before this point.')
 
 # ── Engine performance parameters ───────────────────────────────────────
 epr = compute_epr(result) or 1.0
