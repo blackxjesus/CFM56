@@ -20,6 +20,7 @@ from visualization.ts_diagram import plot_ts_diagram
 from visualization.model_3d import plot_3d_model
 from visualization.ecam import estimate_n1, estimate_n2, compute_epr
 from visualization.ewd import ewd_svg
+from visualization.start_plot import plot_start_transient
 from visualization.airbus_panel import PANEL_CSS, panel_image, hit_test
 from streamlit_image_coordinates import streamlit_image_coordinates
 from engine import simulate_start, StartScenario, CockpitConfig, EngMode
@@ -179,11 +180,36 @@ with col_ecam:
                                 epr=compute_epr(result), opr=result.opr,
                                 sfc=result.sfc, thr=result.thrust_kN), height=720)
 
+# ── Engine start trends: N1/N2, EGT, FF against time ────────────────────
+# Live while STARTING (redrawn each tick from the frame the E/WD fragment
+# advances), the full trace after a FAULT, and the last start once RUNNING.
+if ss.start_data is not None:
+    st.divider()
+    st.subheader('Engine start — trends')
+    if ss.eng_state == 'STARTING':
+        @st.fragment(run_every=TICK_DT)
+        def _trend():
+            if ss.eng_state != 'STARTING' or ss.start_data is None:
+                return
+            st.plotly_chart(plot_start_transient(ss.start_data, int(ss.frame)),
+                            key='start_trend')
+        _trend()
+    elif ss.eng_state == 'FAULT':
+        sd = ss.start_data
+        st.plotly_chart(plot_start_transient(sd, len(sd.t) - 1), key='start_trend')
+    else:
+        with st.expander('Last start sequence', expanded=False):
+            sd = ss.start_data
+            st.plotly_chart(plot_start_transient(sd, len(sd.t) - 1), key='start_trend')
+
 # ── Cycle analysis: operating point, parameters + diagrams (always shown) ──
 # The E/WD follows these controls only while the engine is RUNNING; the
 # analysis below is available in every engine state.
 st.divider()
 st.subheader('Cycle analysis')
+if ss.eng_state != 'RUNNING':
+    st.caption('Steady-state operating point (reference) — the engine is not '
+               'running; the cycle diagrams apply from idle upwards.')
 c1, c2 = st.columns([2, 1])
 with c1:
     phase = st.selectbox('Flight Phase', FLIGHT_PHASES, key='phase')
