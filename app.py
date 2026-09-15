@@ -25,6 +25,7 @@ from visualization.airbus_panel import PANEL_CSS, panel_image, hit_test
 from streamlit_image_coordinates import streamlit_image_coordinates
 from engine import simulate_start, StartScenario, CockpitConfig, EngMode
 from engine.playback import step_playback, cockpit_action
+from engine.trend import history_from_start, step_trend
 
 # ── Config ────────────────────────────────────────────────────────────────
 st.set_page_config(page_title='CFM56-5B Engine Simulator', page_icon='✈️', layout='wide')
@@ -51,6 +52,7 @@ ss = st.session_state
 ss.setdefault('eng_state', 'OFF')      # OFF | STARTING | RUNNING | FAULT
 ss.setdefault('frame', 0.0)
 ss.setdefault('start_data', None)
+ss.setdefault('trend', None)         # TrendHistory: start + running trace
 ss.setdefault('speed', 10)
 ss.setdefault('mode', 'NORM')          # CRANK | NORM | IGN/START
 ss.setdefault('master', False)
@@ -72,12 +74,14 @@ def begin_start(mode_label, master_on, bleed, scenario_name):
     ss.start_data = simulate_start(StartScenario[scenario_name], cockpit)
     ss.frame = 0.0
     ss.eng_state = 'STARTING'
+    ss.trend = None
     ss.started_scenario = scenario_name
 
 def shutdown():
     ss.eng_state = 'OFF'
     ss.frame = 0.0
     ss.start_data = None
+    ss.trend = None
 
 # ── Header ────────────────────────────────────────────────────────────────
 st.title('✈️ CFM56-5B Engine Simulator')
@@ -170,22 +174,38 @@ with col_ecam:
         st.error('FADEC: ' + ', '.join(sd.faults) + ' — set ENG MASTER OFF to clear.')
 
     elif ss.eng_state == 'RUNNING':
-        throttle = ss.get('throttle', 0)
-        phase = ss.get('phase', FLIGHT_PHASES[0])
-        result = lookup[(phase, throttle)]
-        egt_st = result.stations.get('S5_lpt_exit')
-        egt_c = (egt_st.T - 273.15) if egt_st else 0.0
-        components.html(ewd_svg(estimate_n1(throttle), egt_c, estimate_n2(throttle),
-                                result.fuel_flow * 3600, '', _GRN,
-                                epr=compute_epr(result), opr=result.opr,
-                                sfc=result.sfc, thr=result.thrust_kN), height=720)
+        # The E/WD eases toward the selected operating point with a spool lag,
+        # continuing the start trace, so the trends below stay continuous.
+        if ss.trend is None:
+            ss.trend = history_from_start(ss.start_data)
+            ss.trend_throttle = None
 
-# ── Engine start trends: N1/N2, EGT, FF against time ────────────────────
+        @st.fragment(run_every=TICK_DT)
+        def _run():
+            throttle = ss.get('throttle', 0)
+            phase = ss.get('phase', FLIGHT_PHASES[0])
+            result = lookup[(phase, throttle)]
+            egt_st = result.stations.get('S5_lpt_exit')
+            target = dict(N1=estimate_n1(throttle), N2=estimate_n2(throttle),
+                          EGT=(egt_st.T - 273.15) if egt_st else 0.0,
+                          FF=result.fuel_flow * 3600)
+            label = None
+            if ss.get('trend_throttle') is not None and throttle != ss.trend_throttle:
+                label = f'THR {throttle}%'
+            ss.trend_throttle = throttle
+            cur = step_trend(ss.trend, target, ss.speed * TICK_DT, label=label)
+            components.html(ewd_svg(cur['N1'], cur['EGT'], cur['N2'], cur['FF'],
+                                    '', _GRN, epr=compute_epr(result), opr=result.opr,
+                                    sfc=result.sfc, thr=result.thrust_kN), height=720)
+        _run()
+
+# ── Engine trends: N1/N2, EGT, FF against time ─────────────────────────
 # Live while STARTING (redrawn each tick from the frame the E/WD fragment
-# advances), the full trace after a FAULT, and the last start once RUNNING.
+# advances), the full trace after a FAULT, and once RUNNING the start trace
+# continues live through throttle changes (stepped by the E/WD fragment).
 if ss.start_data is not None:
     st.divider()
-    st.subheader('Engine start — trends')
+    st.subheader('Engine trends')
     if ss.eng_state == 'STARTING':
         @st.fragment(run_every=TICK_DT)
         def _trend():
@@ -197,10 +217,14 @@ if ss.start_data is not None:
     elif ss.eng_state == 'FAULT':
         sd = ss.start_data
         st.plotly_chart(plot_start_transient(sd, len(sd.t) - 1), key='start_trend')
-    else:
-        with st.expander('Last start sequence', expanded=False):
-            sd = ss.start_data
-            st.plotly_chart(plot_start_transient(sd, len(sd.t) - 1), key='start_trend')
+    elif ss.trend is not None:
+        @st.fragment(run_every=TICK_DT)
+        def _run_trend():
+            h = ss.trend
+            if ss.eng_state != 'RUNNING' or h is None:
+                return
+            st.plotly_chart(plot_start_transient(h, len(h.t) - 1), key='start_trend')
+        _run_trend()
 
 # ── Cycle analysis: operating point, parameters + diagrams (always shown) ──
 # The E/WD follows these controls only while the engine is RUNNING; the

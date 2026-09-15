@@ -2,10 +2,11 @@
 """
 Live engine-start trend chart (N1/N2, EGT, FF against time).
 
-plot_start_transient(sd, i) draws a StartTransient up to frame i, so the app
-can redraw it each animation tick alongside the E/WD. The time axis is fixed to
-the whole start so the traces grow instead of the axes rescaling; the EGT start
-limit and the sequence events reached so far are marked.
+plot_start_transient(sd, i) draws a StartTransient (or a running
+engine.trend.TrendHistory, which has the same signals) up to frame i, so the app
+can redraw it each tick alongside the E/WD. The time axis spans the whole start
+(or the whole history) so the traces grow instead of the axes rescaling; the EGT
+start limit and the events reached so far are marked.
 """
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -31,15 +32,23 @@ def plot_start_transient(sd, i, egt_limit=EGT_START_LIMIT):
                   label=dict(text=f'START LIMIT {egt_limit:.0f} °C',
                              textposition='end', font=dict(color=_RED, size=10)))
 
+    # Event markers; labels stack down the top panel so ones close in time
+    # (e.g. IGNITION ON / LIGHT-OFF) don't overprint each other.
     now = sd.t[i]
-    for t_ev, label in sd.events:
-        if t_ev <= now:
-            fig.add_vline(x=t_ev, line=dict(color='#666', dash='dot', width=1),
-                          annotation_text=label, annotation_position='top left',
-                          annotation_font=dict(size=9, color='#aaa'))
+    shown = [(t_ev, label) for t_ev, label in sd.events if t_ev <= now]
+    span = max(1e-6, sd.t[-1] - sd.t[0])
+    level, last_t = 0, None
+    for t_ev, label in shown:
+        level = level + 1 if last_t is not None and t_ev - last_t < 0.08 * span else 0
+        last_t = t_ev
+        for row in (1, 2, 3):
+            fig.add_vline(x=t_ev, line=dict(color='#666', dash='dot', width=1), row=row, col=1)
+        fig.add_annotation(x=t_ev, y=1 - 0.13 * (level % 4), xref='x', yref='y domain',
+                           text=label, showarrow=False, xanchor='left', yanchor='top',
+                           xshift=3, font=dict(size=9, color='#aaa'), row=1, col=1)
 
     # Fixed ranges so the animation grows the traces without rescaling
-    fig.update_xaxes(range=(0, sd.t[-1]), gridcolor='#222')
+    fig.update_xaxes(range=(sd.t[0], sd.t[-1]), gridcolor='#222')
     fig.update_xaxes(title_text='t [s]', row=3, col=1)
     fig.update_yaxes(range=(0, max(100.0, max(sd.N2) * 1.1)), row=1, col=1)
     fig.update_yaxes(range=(0, max(egt_limit, max(sd.EGT)) * 1.15), row=2, col=1)
