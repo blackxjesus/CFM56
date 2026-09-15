@@ -16,11 +16,15 @@ from PIL import Image, ImageDraw, ImageFont
 
 IMG_W, IMG_H = 360, 300
 
-# Click regions in image pixel space -> control name
+# Click regions in image pixel space -> control name. The MODE knob is split
+# into one target per position (knob sector + its label) so a position is
+# selected directly instead of cycling through the others.
 PANEL_REGIONS = {
-    'master': (52, 40, 128, 184),     # ENG 1 toggle switch
-    'mode':   (146, 110, 214, 182),   # rotary MODE knob
-    'bleed':  (104, 238, 256, 276),   # APU BLEED switch
+    'master':         (52, 40, 124, 184),    # ENG 1 toggle switch
+    'mode:NORM':      (150, 84, 210, 130),   # NORM label + top of knob
+    'mode:CRANK':     (124, 130, 179, 210),  # left half of knob + CRANK label
+    'mode:IGN/START': (181, 130, 256, 210),  # right half of knob + IGN/START label
+    'bleed':          (104, 238, 256, 276),  # APU BLEED switch
 }
 
 PANEL_CSS = """<style>
@@ -40,8 +44,14 @@ div:has(> img[alt]) img { cursor: pointer; border-radius: 6px; }
 </style>"""
 
 
-def hit_test(x, y):
-    """Return the control name whose region contains (x, y), or None."""
+def hit_test(x, y, width=None, height=None):
+    """Return the control name whose region contains (x, y), or None.
+
+    width/height are the displayed image size reported with the click; when
+    given, the click is scaled back to panel pixel space.
+    """
+    if width and height:
+        x, y = x * IMG_W / width, y * IMG_H / height
     for name, (x0, y0, x1, y1) in PANEL_REGIONS.items():
         if x0 <= x <= x1 and y0 <= y <= y1:
             return name

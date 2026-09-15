@@ -13,6 +13,12 @@ def test_valve_opens_on_norm_master_bleed():
     assert cmd['fuel_cmd'] is False
 
 
+def test_norm_mode_does_not_start():
+    cfg = CockpitConfig(mode=EngMode.NORM, master_on=True, bleed_available=True)
+    cmd = fadec_commands(N2=P.lightoff_N2, cfg=cfg, p=P)
+    assert cmd == {'valve_open': False, 'fuel_cmd': False, 'ignition_cmd': False}
+
+
 def test_no_valve_without_bleed():
     cfg = CockpitConfig(mode=EngMode.IGN_START, master_on=True, bleed_available=False)
     cmd = fadec_commands(N2=5.0, cfg=cfg, p=P)

@@ -310,14 +310,17 @@ I · dN2/dt = Q_indító(N2) + Q_turbina(N2, üzemanyag, lit) − Q_ellenállás
 
 Az **EGT** empirikus korreláció: alapszint + light-off csúcs (Gauss-görbe), a start-határérték ≈725 °C.
 
-### Indítási szekvencia (NORM)
+### Indítási szekvencia (IGN/START)
 
 `STARTER ON → IGNITION ON → LIGHT-OFF → STARTER CUTOUT → IDLE`
 
-1. ENG MASTER ON + APU BLEED → indítószelep nyit, N2 emelkedik.
+1. ENG MODE → IGN/START, majd ENG MASTER ON + APU BLEED → indítószelep nyit, N2 emelkedik.
+   NORM állásban a hajtómű nem indul.
 2. ~18% N2-nél a FADEC üzemanyagot ad + gyújtók be → light-off.
 3. ~50% N2-nél indítómotor kiold.
 4. Felpörgés alapjáratig (~60% N2 / ~19% N1).
+5. A stabil alapjárat után az ENG MODE visszaállítható NORM-ba; a hajtómű jár tovább.
+   Indítás közben NORM-ba kapcsolás megszakítja az indítást; leállítás: ENG MASTER OFF.
 
 **CRANK** mód: csak forgatás (dry motoring), üzemanyag és gyújtás nélkül — sikertelen indítás utáni átszellőztetésre.
 
@@ -335,11 +338,12 @@ személyzet feladata (MASTER OFF / CRANK az átszellőztetéshez).
 
 ### Használat az appban
 
-A Streamlit app **Mode** kapcsolójával a „🔥 Engine Start" nézetre váltva:
-pilótafülke-vezérlők (ENG MODE, ENG MASTER, APU BLEED) + forgatókönyv-választó
-a négy hibához. Az időcsúszkával végiglépkedve az ECAM műszerek (N1/N2/EGT/FF,
-indítószelep, gyújtó) élőben animálódnak a szekvencián, az események és a
-FADEC-hibák alatta jelennek meg.
+Az app bal oldalán a kattintható ENG panel (ENG 1 kapcsoló, ENG MODE állások
+— CRANK / NORM / IGN/START közvetlenül kattinthatók —, APU BLEED) és a
+forgatókönyv-választó a négy hibához. Az E/WD valós időben animálja az indítást,
+az események és a FADEC-hibák alatta jelennek meg. A körfolyamat-elemzés
+(repülési fázis, gázkar, állomás- és T-s diagram, 3D modell) az oldal alján
+minden állapotban elérhető.
 
 ---
 

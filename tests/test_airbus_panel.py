@@ -32,3 +32,15 @@ def test_hit_test_maps_regions():
 
 def test_hit_test_misses_empty_area():
     assert hit_test(2, 2) is None
+
+
+def test_mode_knob_positions_are_selected_directly():
+    # Each knob position (and its label) is its own target — no cycling.
+    assert hit_test(180, 106) == 'mode:NORM'      # NORM label / top of knob
+    assert hit_test(132, 192) == 'mode:CRANK'     # CRANK label
+    assert hit_test(228, 194) == 'mode:IGN/START' # IGN/START label
+
+
+def test_hit_test_scales_displayed_coordinates():
+    # A click on an image shown at 2x size maps back to panel pixels.
+    assert hit_test(360, 212, width=IMG_W * 2, height=IMG_H * 2) == 'mode:NORM'
