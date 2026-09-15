@@ -12,8 +12,8 @@ from visualization import plot_ts_diagram, plot_station_diagram
 
 PHASES = [
     {'flight_phase': 'takeoff', 'altitude_ft': 0,      'mach': 0.25},
-    {'flight_phase': 'climb',   'altitude_ft': 10000,  'mach': 0.50},
-    {'flight_phase': 'cruise',  'altitude_ft': 35000,  'mach': 0.82},
+    {'flight_phase': 'climb',   'altitude_ft': 15000,  'mach': 0.50},
+    {'flight_phase': 'cruise',  'altitude_ft': 35000,  'mach': 0.78},
 ]
 
 if __name__ == '__main__':
@@ -34,6 +34,9 @@ if __name__ == '__main__':
         'SFC':         round(r.sfc, 5),
         'OPR':         round(r.opr, 2),
         'BPR':         round(r.bpr, 2),
+        'W kg/s':      round(r.mass_flow, 1),
+        'N1 %':        round(r.N1, 1),
+        'N2 %':        round(r.N2, 1),
     } for r in results])
     print("\nÖsszefoglaló táblázat:")
     print(summary.to_string(index=False))

@@ -27,6 +27,20 @@ class EngineResults:
     opr: float = 0.0
     bpr: float = 0.0
     fuel_flow: float = 0.0  # kg/s
+    mass_flow: float = 0.0  # kg/s, total inlet air
+    T4: float = 0.0         # K, burner exit total temperature
+    far: float = 0.0        # fuel-air ratio (core)
+    hpt_PR: float = 0.0
+    lpt_PR: float = 0.0
+    gross_thrust_kN: float = 0.0
+    ram_drag_kN: float = 0.0
+    LP_Nmech: float = 0.0   # rpm (meaningful in off-design only)
+    HP_Nmech: float = 0.0   # rpm (meaningful in off-design only)
+    N1: float = 0.0         # % of 100 % reference speed
+    N2: float = 0.0         # %
+    vbv_frac: float = 0.0   # VBV bleed fraction of booster flow
+    lpc_rline: float = 0.0  # booster map R-line (1.0 = surge line)
+    validity: List[str] = field(default_factory=list)  # empty = physically valid
 
     def to_dataframe(self):
         import pandas as pd
