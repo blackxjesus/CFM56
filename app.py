@@ -23,7 +23,7 @@ from visualization.ewd import ewd_svg
 from visualization.airbus_panel import PANEL_CSS, panel_image, hit_test
 from streamlit_image_coordinates import streamlit_image_coordinates
 from engine import simulate_start, StartScenario, CockpitConfig, EngMode
-from engine.playback import step_playback
+from engine.playback import step_playback, cockpit_action
 
 # ── Config ────────────────────────────────────────────────────────────────
 st.set_page_config(page_title='CFM56-5B Engine Simulator', page_icon='✈️', layout='wide')
@@ -91,23 +91,27 @@ with col_panel:
                 unsafe_allow_html=True)
     off = ss.eng_state == 'OFF'
 
-    # Clickable ENG panel image — click the ENG 1 switch / MODE knob / APU BLEED
+    # Clickable ENG panel image — click the ENG 1 switch / MODE position / APU BLEED
     img = panel_image(ss.mode, ss.master, ss.bleed)
-    key = f"engpanel_{ss.get('click_seq', 0)}"
-    click = streamlit_image_coordinates(img, key=key)
-    if click is not None:
-        hit = hit_test(click['x'], click['y'])
+    click = streamlit_image_coordinates(img, key='engpanel')
+    # The component keeps returning its last click on every rerun, so each click
+    # is handled once, identified by its timestamp.
+    if click is not None and click.get('unix_time') != ss.get('last_click'):
+        ss.last_click = click.get('unix_time')
+        hit = hit_test(click['x'], click['y'], click.get('width'), click.get('height'))
         if hit:
-            ss.click_seq = ss.get('click_seq', 0) + 1   # remount -> allow repeat clicks
             if hit == 'master':
                 ss.master = not ss.master
             elif hit == 'bleed':
                 ss.bleed = not ss.bleed
-            elif hit == 'mode':
-                order = ['CRANK', 'NORM', 'IGN/START']
-                ss.mode = order[(order.index(ss.mode) + 1) % len(order)]
+            elif hit.startswith('mode:'):
+                ss.mode = hit.split(':', 1)[1]
             st.rerun()
-    st.caption('Click the panel: ENG 1 switch · MODE knob · APU BLEED')
+    st.caption('Click the panel: ENG 1 switch · MODE position (CRANK / NORM / IGN/START) · APU BLEED')
+    if ss.eng_state == 'OFF' and ss.master and ss.mode == 'NORM':
+        st.info('Start: set MODE to IGN/START. NORM does not start the engine.')
+    elif ss.eng_state == 'RUNNING' and ss.mode == 'IGN/START':
+        st.info('Engine stabilised — MODE can be returned to NORM.')
 
     st.selectbox('SCENARIO (MAINT)',
                  ['NORMAL', 'HUNG', 'HOT', 'NO_FUEL', 'NO_IGNITION'],
@@ -120,27 +124,12 @@ mode, master, bleed = ss.mode, ss.master, ss.bleed
 scenario_name = ss.scenario
 
 # Decide whether to begin / shutdown based on control state
-def start_armed():
-    if not bleed:
-        return False
-    if mode in ('NORM', 'IGN/START') and master:
-        return True
-    if mode == 'CRANK':
-        return True
-    return False
-
-if ss.eng_state == 'OFF' and start_armed():
+action = cockpit_action(ss.eng_state, mode, master, bleed,
+                        scenario_changed=scenario_name != ss.get('started_scenario'))
+if action == 'start':
     begin_start(mode, master, bleed, scenario_name)
     st.rerun()
-elif (ss.eng_state != 'OFF' and start_armed()
-      and scenario_name != ss.get('started_scenario')):
-    # fault changed while the engine is active -> restart the start with it
-    begin_start(mode, master, bleed, scenario_name)
-    st.rerun()
-elif ss.eng_state == 'STARTING' and not start_armed():
-    shutdown()
-    st.rerun()
-elif ss.eng_state in ('RUNNING', 'FAULT') and not master and mode != 'CRANK':
+elif action == 'shutdown':
     shutdown()
     st.rerun()
 
@@ -190,44 +179,47 @@ with col_ecam:
                                 epr=compute_epr(result), opr=result.opr,
                                 sfc=result.sfc, thr=result.thrust_kN), height=720)
 
-# ── RUNNING controls + diagrams ─────────────────────────────────────────
-if ss.eng_state == 'RUNNING':
-    st.divider()
-    c1, c2 = st.columns([2, 1])
-    with c1:
-        phase = st.selectbox('Flight Phase', FLIGHT_PHASES, key='phase')
-        throttle = st.slider('Throttle [%]', 0, 100, ss.get('throttle', 0), step=5,
-                             key='throttle',
-                             help='0% = idle (T4 ≈ 1000K) | 100% = TOGA (T4 = 1700K)')
-        T4 = 1000.0 + throttle * 7.0
-        st.caption(f'T4 = {T4:.0f} K')
-    result = lookup[(phase, throttle)]
+# ── Cycle analysis: operating point, parameters + diagrams (always shown) ──
+# The E/WD follows these controls only while the engine is RUNNING; the
+# analysis below is available in every engine state.
+st.divider()
+st.subheader('Cycle analysis')
+c1, c2 = st.columns([2, 1])
+with c1:
+    phase = st.selectbox('Flight Phase', FLIGHT_PHASES, key='phase')
+    throttle = st.slider('Throttle [%]', 0, 100, ss.get('throttle', 0), step=5,
+                         key='throttle',
+                         help='0% = idle (T4 ≈ 1000K) | 100% = TOGA (T4 = 1700K)')
+    T4 = 1000.0 + throttle * 7.0
+    st.caption(f'T4 = {T4:.0f} K   |   N1 ≈ {estimate_n1(throttle):.1f}%   |   '
+               f'N2 ≈ {estimate_n2(throttle):.1f}%')
+result = lookup[(phase, throttle)]
 
-    # ── Engine performance parameters ───────────────────────────────────
-    epr = compute_epr(result) or 1.0
-    st.markdown('**Engine parameters**')
-    m1, m2, m3, m4, m5, m6 = st.columns(6)
-    m1.metric('Thrust', f'{result.thrust_kN:.1f} kN')
-    m2.metric('EPR', f'{epr:.3f}')
-    m3.metric('OPR', f'{result.opr:.2f}')
-    m4.metric('BPR', f'{result.bpr:.2f}')
-    m5.metric('SFC', f'{result.sfc:.5f}', help='kg/(kN·s)')
-    m6.metric('Fuel flow', f'{result.fuel_flow * 3600:.0f} kg/h')
+# ── Engine performance parameters ───────────────────────────────────────
+epr = compute_epr(result) or 1.0
+st.markdown('**Engine parameters**')
+m1, m2, m3, m4, m5, m6 = st.columns(6)
+m1.metric('Thrust', f'{result.thrust_kN:.1f} kN')
+m2.metric('EPR', f'{epr:.3f}')
+m3.metric('OPR', f'{result.opr:.2f}')
+m4.metric('BPR', f'{result.bpr:.2f}')
+m5.metric('SFC', f'{result.sfc:.5f}', help='kg/(kN·s)')
+m6.metric('Fuel flow', f'{result.fuel_flow * 3600:.0f} kg/h')
 
-    with st.expander('Station thermodynamics (T, P, h)'):
-        df = result.to_dataframe().rename(columns={
-            'station': 'Station', 'T_K': 'T [K]', 'P_kPa': 'P [kPa]', 'h_kJkg': 'h [kJ/kg]'})
-        st.dataframe(df.style.format({'T [K]': '{:.1f}', 'P [kPa]': '{:.1f}',
-                                      'h [kJ/kg]': '{:.1f}'}),
-                     use_container_width=True, hide_index=True)
+with st.expander('Station thermodynamics (T, P, h)'):
+    df = result.to_dataframe().rename(columns={
+        'station': 'Station', 'T_K': 'T [K]', 'P_kPa': 'P [kPa]', 'h_kJkg': 'h [kJ/kg]'})
+    st.dataframe(df.style.format({'T [K]': '{:.1f}', 'P [kPa]': '{:.1f}',
+                                  'h [kJ/kg]': '{:.1f}'}),
+                 width='stretch', hide_index=True)
 
-    tab1, tab2, tab3 = st.tabs(['📊 Station Diagram', '🌡️ T-s Diagram', '🔩 3D Model'])
-    with tab1:
-        fig1 = plot_station_diagram(result)
-        st.pyplot(fig1, use_container_width=False); plt.close(fig1)
-    with tab2:
-        fig2 = plot_ts_diagram([result])
-        st.pyplot(fig2, use_container_width=False); plt.close(fig2)
-    with tab3:
-        fig3 = plot_3d_model(result)
-        st.plotly_chart(fig3, use_container_width=True)
+tab1, tab2, tab3 = st.tabs(['📊 Station Diagram', '🌡️ T-s Diagram', '🔩 3D Model'])
+with tab1:
+    fig1 = plot_station_diagram(result)
+    st.pyplot(fig1, width='content'); plt.close(fig1)
+with tab2:
+    fig2 = plot_ts_diagram([result])
+    st.pyplot(fig2, width='content'); plt.close(fig2)
+with tab3:
+    fig3 = plot_3d_model(result)
+    st.plotly_chart(fig3)

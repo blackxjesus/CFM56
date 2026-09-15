@@ -23,7 +23,8 @@ class CockpitConfig:
 
 
 def fadec_commands(N2, cfg, p):
-    norm_start = cfg.mode in (EngMode.NORM, EngMode.IGN_START) and cfg.master_on and cfg.bleed_available
+    # Only IGN/START initiates a start; NORM is the post-start running position.
+    norm_start = cfg.mode == EngMode.IGN_START and cfg.master_on and cfg.bleed_available
     crank = cfg.mode == EngMode.CRANK and cfg.bleed_available
     valve_open = (norm_start or crank) and N2 < p.starter_cutout
     fuel_cmd = norm_start and N2 >= p.lightoff_N2
