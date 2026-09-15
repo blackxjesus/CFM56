@@ -280,6 +280,69 @@ ahol P_design = 105.8 kPa, T_design = 291.8 K (tengerszint, Mach 0.25).
 
 ---
 
+## 9.5. Hajtóműindítás és indítási hibák (tranziens modell)
+
+A steady-state ciklusmodell mellé egy **tranziens (időfüggő) hajtóműindítás-modell** is
+beépítésre került, amely az A320 valós indítási szekvenciáját szimulálja a FADEC
+vezérlésével. Ez tisztán Python alapú (nincs pyCycle/OpenMDAO függőség), így a
+telepített Streamlit appban élőben fut.
+
+### Architektúra — három réteg
+
+| Réteg | Fájl | Felelősség |
+|-------|------|------------|
+| **Plant (fizika)** | `engine/start_transient.py` | Redukált rendű HP-tengely tehetetlenségi ODE + empirikus EGT/üzemanyag korrelációk |
+| **FADEC + pilótafülke** | `engine/fadec.py` | ENG MODE / ENG MASTER / APU BLEED állapot → vezérlőparancsok; hibadetektálás (auto-abort nélkül) |
+| **Meghajtó** | `simulate_start()` | Időléptetés: FADEC → plant ciklus, `StartTransient` idősor előállítása |
+
+### Fizikai modell
+
+A nagynyomású tengely fordulatszámának (N2) változása tehetetlenségi egyenlettel:
+
+```
+I · dN2/dt = Q_indító(N2) + Q_turbina(N2, üzemanyag, lit) − Q_ellenállás(N2)
+```
+
+- **Q_indító** — pneumatikus indítómotor nyomatéka (APU bleed-del skálázva), ~50% N2-nél kiold.
+- **Q_turbina** — gyújtás (light-off) után az üzemanyag-energiával arányos.
+- **Q_ellenállás** — kompresszor + súrlódási ellenállás.
+- A `turbine_gain = k_drag · idle_N2` választás biztosítja, hogy az egyensúly **pontosan az alapjárati N2-nél** (≈60%) álljon be.
+
+Az **EGT** empirikus korreláció: alapszint + light-off csúcs (Gauss-görbe), a start-határérték ≈725 °C.
+
+### Indítási szekvencia (NORM)
+
+`STARTER ON → IGNITION ON → LIGHT-OFF → STARTER CUTOUT → IDLE`
+
+1. ENG MASTER ON + APU BLEED → indítószelep nyit, N2 emelkedik.
+2. ~18% N2-nél a FADEC üzemanyagot ad + gyújtók be → light-off.
+3. ~50% N2-nél indítómotor kiold.
+4. Felpörgés alapjáratig (~60% N2 / ~19% N1).
+
+**CRANK** mód: csak forgatás (dry motoring), üzemanyag és gyújtás nélkül — sikertelen indítás utáni átszellőztetésre.
+
+### A négy indítási hiba (gyökok → tünet → FADEC jelzés)
+
+| Hiba (magyar) | Gyökok (injektált) | Tünet | FADEC jelzés |
+|---------------|--------------------|-------|--------------|
+| **Hidegfennakadás** | korlátozott üzemanyag/energia (`ff_cap=0.7`) | N2 ~45%-on megreked, EGT stabil de emelt | `HUNG START` |
+| **Melegfennakadás** | túl sok üzemanyag (`fuel_mult=1.8`) | EGT a 725 °C határ fölé (~977 °C) | `EGT EXCEEDANCE` |
+| **Nincs üzemanyagbetáplálás** | üzemanyagszelep-hiba | N2 ~22%-on forog, EGT környezeti, FF=0 | `NO LIGHT-OFF` |
+| **Nincs gyújtás** | gyújtóhiba | N2 ~22%, EGT környezeti, FF>0 (nedves indítás) | `WET START` |
+
+A FADEC **csak detektál** (auto-abort nélkül) — a hibát jelzi, a beavatkozás a
+személyzet feladata (MASTER OFF / CRANK az átszellőztetéshez).
+
+### Használat az appban
+
+A Streamlit app **Mode** kapcsolójával a „🔥 Engine Start" nézetre váltva:
+pilótafülke-vezérlők (ENG MODE, ENG MASTER, APU BLEED) + forgatókönyv-választó
+a négy hibához. Az időcsúszkával végiglépkedve az ECAM műszerek (N1/N2/EGT/FF,
+indítószelep, gyújtó) élőben animálódnak a szekvencián, az események és a
+FADEC-hibák alatta jelennek meg.
+
+---
+
 ## 10. Git commit történet
 
 | Commit | Leírás |
