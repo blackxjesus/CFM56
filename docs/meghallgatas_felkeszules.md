@@ -264,6 +264,7 @@ cd Engine/Engine
 
 - **A .venv környezetet használd.** A gép alap `python3.12` környezete régi Streamlitet tartalmaz (1.37), amellyel az app `TypeError`-ral leáll.
 - Az app élőben nem futtatja a pyCycle-t, a `data/lookup.pkl`-ből olvas. Ettől gyors, ezt tudd elmondani.
+- Nyilvános link: https://cfm56ziad.streamlit.app. Internetet igényel, és használat nélkül elalszik, ezért a bemutató előtt ébreszd fel, és nézd meg, hogy betölt-e.
 - Legyen **offline tartalék** (képernyővideó vagy képernyőképek), és próbáld ki a projektor felbontásán.
 
 **Menet:**

@@ -1,10 +1,10 @@
-om-pycycle==4.4.0
-openmdao==3.45.2
-# pyCycle 4.4.0 fails on NumPy >= 2.3 ("setting an array element with a sequence")
-numpy==2.2.6
-# app.py uses width='stretch', which needs streamlit >= 1.50
-streamlit==1.66.1
-matplotlib==3.11.2
-plotly==7.1.0
-pillow==13.0.0
-streamlit-image-coordinates==0.4.1
+# App only (this file is what Streamlit Cloud installs). The app reads
+# data/lookup.pkl and never imports pyCycle. To run the simulation or the
+# tests, install requirements-sim.txt instead.
+# Upper bound: st.components.v1.html is deprecated in newer Streamlit.
+streamlit>=1.50,<=1.66.1
+matplotlib
+plotly
+numpy
+pillow
+streamlit-image-coordinates
