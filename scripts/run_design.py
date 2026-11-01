@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import matplotlib
 matplotlib.use('Agg')
 
-from engine import run_design_point
+from engine.simulation import run_design_point
 from visualization import plot_station_diagram, plot_3d_model
 
 if __name__ == '__main__':

@@ -7,7 +7,7 @@ import matplotlib
 matplotlib.use('Agg')
 
 import pandas as pd
-from engine import run_off_design
+from engine.simulation import run_off_design
 from visualization import plot_ts_diagram, plot_station_diagram
 
 PHASES = [

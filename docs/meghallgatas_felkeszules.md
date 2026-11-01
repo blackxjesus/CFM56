@@ -1,250 +1,333 @@
 # Szakdolgozat II meghallgatás – felkészülési anyag
 
 > Saját használatra. Ne olvasd fel! Kulcsszavakat tanulj, és minden számot tudj levezetni.
-> A bizottság nem a formát nézi, hanem azt, hogy **te magad érted-e** a saját anyagodat.
+> Állapot: 2026-11-01. Minden szám a jelenlegi modellből való (`data/results.csv`, `data/design_point.pkl`).
 
 ---
 
-## 0. Őszinte állapotfelmérés (olvasd el először)
+## 0. Mit néz a bizottság, és hol tartasz
+
+A kiírás szerint a meghallgatás célja annak igazolása, hogy **a dolgozat a saját önálló munkád**. A bizottság (legalább 3 fő, köztük a belső konzulens) öt témát ellenőriz. Ehhez igazodik ez az anyag:
+
+| Bizottsági téma | Példakérdés a kiírásból | Fejezet |
+|-----------------|-------------------------|---------|
+| Szakirodalom | „Mit olvasott ebben a szakirodalomban?” | 2. |
+| Tantárgyi előismeretek | „Mit tanult ezzel kapcsolatban repüléselméletből?” | 3. |
+| Kiinduló adatok és forrásuk | „Honnan származik ez az adat? Milyen közelítéssel alkalmazta?” | 4. |
+| Módszer | „Milyen más módszert alkalmazhatott volna még?” | 5. |
+| Várt és valós eredmények | „Miben mond ellent ez az eredmény az elvárásainak?” | 6. |
+
+További tudnivalók a kiírásból:
+- 5 perces, **saját szavas** összefoglaló kell, nem felolvasás. Prezentáció nem szükséges.
+- Jegyzet, táblázat és applikáció szabadon használható, sőt bemutatásuk kívánatos (projektor vagy okostábla).
+- A forma nem számít. Az számít, hogy **te magad tudod-e értelmezni** a saját anyagaidat.
+- Az eredmény a Szakdolgozat II. tárgy záró érdemjegye.
 
 **Erős pontok:**
-- Működő, verziókezelt (68 commit), tesztelt Python kód; saját szimulációs csomag.
-- pyCycle/OpenMDAO (NASA) használata CEA-alapú gáztulajdonságokkal.
-- Interaktív A320 E/WD pilótafülke-app (Streamlit): gázkar, ENG MASTER / ENG MODE, élő trendek.
-- **Tranziens indítási modell + FADEC-logika + 4 indítási hiba.** Ez a leginkább „saját” kreatív munka – ezt emeld ki.
+- Tengely-egyensúllyal zárt tervezési pont: a teljesítménymérleg kézzel is ellenőrizhető.
+- Valódi off-design rögzített geometriával: tömegáram, BPR, OPR, N1 és N2 eredmény, nem bemenet.
+- Tranziens indítási modell, FADEC-logika, 4 indítási hiba, megrekedési fordulatszámok kézi levezetése.
+- Működő app, 97 automatikus teszt, verziókezelés.
 
-**Gyenge pontok, amiket egy hozzáértő bizottsági tag meg fog találni** (részletek: 5. fejezet):
-1. A HP-tengely teljesítménymérlege **nincs egyensúlyban** (a turbinák PR = 4,0 rögzített bemenet).
-2. Az „off-design” valójában **ugyanaz a tervezési pont**, más magasságon/Mach-számon, és a tömegáram rögzített (370 kg/s). Ezért OPR = 26,96 és BPR = 5,5 minden fázisban.
-3. A „validált” OPR és BPR **bemenet**, nem eredmény (1,685 × 2,0 × 8,0 = 26,96).
-4. A gázkar T4-je nem 1000 K alapjáraton: a FAR-t skálázod, és a tényleges S4 = **1379 K**.
-5. A gázkar-eredmények fizikailag nem reálisak: alapjáraton 109 kN tolóerő, és kisebb SFC, mint teljes gáznál.
-6. A 133,4 kN **statikus** (Mach 0) érték, te pedig Mach 0,25-ön számolsz (ram drag ≈ 31 kN).
-7. Az ideális Brayton-hatásfok a dolgozatban 47 %, OPR = 27-nél valójában **≈ 61 %**.
-8. Az irodalomjegyzék néhány tétele pontatlan vagy ellenőrizetlen (lásd 1. fejezet).
-9. A dolgozat (.docx) még **nem tartalmazza** az indítási/FADEC modellt és a pilótafülke-appot.
+**Ahol kérdésre számíthatsz** (részletek a 6. fejezetben):
+1. Az SFC 8–17 %-kal nagyobb a közölt értékeknél, miközben a tolóerő +3,7 %.
+2. A 63 munkapontból 13 érvénytelen.
+3. A földi alapjárat nincs a ciklusmodellben: az indítási modell és a ciklusmodell között szakadék van.
+4. A validáció egyik fő forrása a Wikipedia [13].
+5. A dolgozatban van néhány szakmai pontatlanság (8. fejezet).
 
-A stratégia: **ne védd a hibát, hanem mutasd meg, hogy te magad találtad meg és érted, miért van.**
-Ez a meghallgatáson sokkal többet ér, mint egy „tökéletes” szám, amit nem tudsz megmagyarázni.
-3–5 hét van a leadásig, az 1., 2. és 4. pont javítható.
+**Az önálló munkáról.** A kiírás kifejezetten a generatív MI miatt vezette be ezt a meghallgatást, a repó 70 commitjából 47-ben pedig Claude társszerzőként szerepel. Ha megmutatod a repót, ez látszik, ezért **mondd el magadtól, pontosan**: mire használtál MI-t, és mi volt a te döntésed. Csak azt állítsd a saját felismerésednek, ami valóban az volt. Ami ebben az anyagban a saját döntésedként szerepel, azt ellenőrizd, és ha nem igaz, fogalmazd át. Tanulni nem a kész válaszokat kell, hanem azt, hogy minden sort meg tudj indokolni.
 
 ---
 
-## 1. Szakirodalom – „Mit olvasott ebben?”
+## 1. 5 perces összefoglaló – kulcsszavas vázlat
 
-**Szabály:** csak azt hivatkozd, amit ténylegesen kézben tartottál. Minden forrásnál tudj 2–3 mondatot mondani.
-
-| # | Forrás | Mit kell tudnod róla | Teendő |
-|---|--------|----------------------|--------|
-| [7] | Mattingly: *Elements of Propulsion* | Turbofan ciklusanalízis, állomásszámozás, tolóerő-egyenlet, TSFC | Olvasd el a turbofan parametrikus ciklusanalízis fejezetet |
-| [8] | Çengel–Boles: *Thermodynamics* | Brayton-ciklus, izentropikus hatásfok, T-s diagram | – |
-| [9] | Cumpsty–Heyes: *Jet Propulsion* | Tolóerő, propulziós hatásfok, BPR szerepe | – |
-| [10] | Walsh–Fletcher: *Gas Turbine Performance* | Design point vs. off-design, jelleggörbék, tranziens | A DOKUMENTACIO.md-ben „5–10 %”, a dolgozatban „10–20 %” eltérés szerepel rá hivatkozva – **nézd meg, mit ír valójában**, vagy vedd ki |
-| [14] | Kurzke–Halliwell: *Propulsion and Power* | Teljesítménymodellezés, hűtőlevegő, jelleggörbe-skálázás | – |
-| [11] | pyCycle cikk | **Hibás hivatkozás.** A valódi: Hendricks, E. S. – Gray, J. S. (2019): *pyCycle: A Tool for Efficient Optimization of Gas Turbine Engine Cycles.* Aerospace 6(8): 87 (MDPI) | Javítsd |
-| [13] | Gray et al. (2019) OpenMDAO | Newton-megoldó, implicit komponensek | – |
-| [2] | Aircraft Commerce | A DOKUMENTACIO szerint az 50-es szám a 5A/5B, az 58-as a 7B. A dolgozatban „58: 5B/7B” szerepel | Ellenőrizd |
-| [3] | Roux: *Turbofan and Turbojet Engines Database Handbook* | Motoradatok (tömegáram, BPR, OPR) | Innen vedd a tömegáramot |
-| [1], [5], [6], [15] | CFM / Airbus / Aviation Week | Nem tudom ellenőrizni, hogy léteznek ezzel a címmel és oldalszámmal | **Keresd meg mindegyiket.** Ha nem találod, cseréld le olyanra, amit megtaláltál |
-| – | A320 FCOM / FCTM (indítás) | Az indítási modell számai (16 % gyújtás, 22 % üzemanyag, 50 % indító kiold, 725 °C start EGT limit) | **Vedd fel forrásként** – most nincs hivatkozva |
-
-A dolgozat egyes állításainak is nézz utána, mert rákérdezhetnek: „több mint 20 000 darab”, „a légi forgalom 30 %-a”, „180 perces ETOPS”, „172 kg/s tömegáram” (a kódban 370 kg/s!).
-
----
-
-## 2. Előismeretek – képletek a saját számaiddal
-
-Ezeket tudd **táblán, fejből** levezetni. A saját eredményeidből jönnek, és jól mutatják a megértést.
-
-**Ideális Brayton-hatásfok**
-η_th = 1 − OPR^(−(γ−1)/γ) = 1 − 26,96^(−0,2857) ≈ **0,61**
-(A dolgozatban 47 % szerepel – javítsd. A valós ≈ 40–45 % az irreverzibilitások miatt.)
-
-**Kompresszor összesített izentropikus hatásfoka a saját táblázatodból**
-T3s = T2 · OPR^0,2857 = 291,8 · 2,563 ≈ 747,9 K
-η_c = (T3s − T2)/(T3 − T2) = (747,9 − 291,8)/(804,9 − 291,8) ≈ **0,889**
-→ Konzisztens a megadott 0,87–0,89 értékekkel. Jó bemutatni.
-
-**Magáram és tüzelőanyag**
-ṁ_core = 370/(1 + 5,5) ≈ 56,9 kg/s; ṁ_f = FAR · ṁ_core = 0,027 · 56,9 ≈ **1,54 kg/s** ✔ (egyezik a szimulációval)
-
-**Tolóerő** (dolgozat 2.4):
-Fn = ṁ_c·V8 + ṁ_b·V18 − ṁ_0·V0 + (P8 − P0)·A8 + (P18 − P0)·A18
-Ram drag Mach 0,25-ön: V0 ≈ 85 m/s → ṁ·V0 ≈ 370 · 85 ≈ **31 kN**
-
-**SFC mértékegységek**
-1 lb/(lbf·h) ≈ 28,3 g/(kN·s). A te 0,0135 kg/(kN·s) = 13,5 g/(kN·s) ≈ 0,48 lb/(lbf·h).
-
-**Még ezekre készülj:**
-- Izentropikus hatásfok definíciója kompresszorra és turbinára, és hogy miért más.
-- Propulziós hatásfok: η_p = 2/(1 + V_j/V_0) → ezért jó a nagy BPR (nagy tömegáram, kis kiáramlási sebesség).
-- Termikus × propulziós = összhatásfok.
-- ISA: T = 288,15 − 6,5·h [km] 11 km-ig; 35 000 ft ≈ 218,8 K, ≈ 23,8 kPa.
-- Össznyomás és statikus nyomás, torlóponti állapot.
-- Kompresszor-jelleggörbe: nyomásviszony – korrigált tömegáram – fordulatszám, pompázs határ.
-- Kéttengelyes felépítés: fan + LPC + LPT az LP tengelyen, HPC + HPT a HP tengelyen.
-- Miért az N2-t forgatja az indítómotor (az AGB a HP tengelyen van).
-- EGT: a CFM56-on az LPT-nél mérik (a te modelledben S5 ≈ LPT kilépő).
-- FADEC feladata: tüzelőanyag-adagolás, indítási szekvencia, határérték-felügyelet.
-
----
-
-## 3. Kiinduló adatok – „Honnan van ez a szám? Milyen közelítéssel?”
-
-| Adat | Érték | Forrás / közelítés – mit mondj |
-|------|-------|---------------------------------|
-| BPR | 5,5 | ICAO emissziós adatbázis / EASA típusbizonyítvány |
-| OPR | 27 | Aircraft Commerce. **Bemenet**, a fan/LPC/HPC PR szorzata adja |
-| Fan / LPC / HPC PR | 1,685 / 2,0 / 8,0 | **Saját felvétel**, hogy a szorzat 27 legyen. Valós komponens-PR nem publikus |
-| Hatásfokok | 0,87–0,90 | Tipikus értékek a szakirodalomból (Walsh–Fletcher, Mattingly), nem CFM-adat |
-| T4 | ~1700 K | Irodalmi becslés (egy CFM56-3 cikkből). Nem gyártói adat |
-| Tömegáram | 370 kg/s | **Nézd meg a Roux-ban.** A dolgozat 1. táblázatában 172 kg/s szerepel – ellentmondás |
-| FAR | 0,027 | Úgy választva, hogy T4 ≈ 1700 K legyen |
-| HPT / LPT PR | 4,0 / 4,0 | **Rögzített feltevés, nem egyensúlyból számolt** (lásd 5.1) |
-| Égőtéri nyomásveszteség | 3 % | Tipikus érték |
-| Gáztulajdonságok | CEA | pyCycle, hőmérséklet- és összetételfüggő cp |
-| Entrópia a T-s diagramon | cp = 1,005, R = 0,287 | Kalorikusan tökéletes gáz – magas T-n pontatlan (ezt a dolgozat is írja ✔) |
-| Gázkar N1/N2 | lineáris becslés | Nem számolt, empirikus. A DOKUMENTACIO és az `ecam.py` más együtthatókat használ (20+0,80x vs. 22+0,78x) |
-| Indítási modell paraméterei | inertia = 10, k_drag = 1, starter_torque = 40 | **Normalizált, hangolt paraméterek**, nem fizikai [kg·m²]. Úgy hangoltam őket, hogy az indítási idő és a jellegzetes N2-pontok (light-off, kioldás, idle) valósághűek legyenek |
-| Idle N2 / N1 / EGT | 60 % / 19 % / 450 °C | A320 FCOM / üzemeltetési tipikus értékek → hivatkozd |
-| Start EGT limit | 725 °C | A320 FCOM (CFM56-5B) |
-| Light-off N2 | 18 % | Egyszerűsítés: a valós automatikus indításnál ~16 % gyújtás, ~22 % HP fuel valve. **Tudd elmondani, miért vontad össze** |
-
----
-
-## 4. Módszertan – „Milyen más módszert alkalmazhatott volna?”
-
-**Stacioner ciklusanalízis alternatívái:**
-- **Kézi / táblázatkezelős 0D számítás** (Mattingly parametrikus analízis) – átlátható, de konstans cp.
-- **GasTurb** (Kurzke) – ipari-oktatási szabvány, kész jelleggörbék és off-design.
-- **NPSS** (NASA/SwRI) – ipari standard, nem ingyenes.
-- **GSP** (NLR) – objektumorientált, tranziens is.
-- **pyCycle valódi multipoint off-design** – ezt kellett volna (lásd 5.2).
-
-**Tranziens / indítás alternatívái:**
-- **T-MATS** (NASA, MATLAB/Simulink) – dinamikus hajtóműmodell, szabályozókkal.
-- **Komponensszintű dinamikus modell** jelleggörbékkel, az alacsony fordulatszámú tartomány extrapolálásával – ez nagyon nehéz, mert a jelleggörbék idle alatt nem ismertek. Emiatt választottam a redukált rendű modellt.
-- **Adatvezérelt modell** valódi indítási felvételekből (QAR/FDR adatok) – nem fértem hozzá adathoz.
-
-**Miért ezt választottad?** (saját szavaiddal)
-- pyCycle: ingyenes, nyílt, NASA-validált, Python → saját vizualizációval és appal összeköthető.
-- Tranziens modell tisztán Pythonban: élőben fut a webappban, gyors, átlátható. A cél a **jelenségek és a hibák tüneteinek** bemutatása volt, nem a pontos számok.
-
-**Numerikus módszer:**
-- pyCycle: OpenMDAO Newton-megoldó az implicit egyenletrendszerre.
-- Indítás: I·dN2/dt = Q_indító + Q_turbina − Q_ellenállás, **explicit Euler**, dt = 0,5 s.
-  Várható kérdés: „Stabil ez a lépésköz?” → az időállandó I/k_drag = 10 s ≫ 0,5 s, tehát stabil. Pontosabb lenne az RK4 vagy a `scipy.solve_ivp`.
-- Az egyensúly: turbine_gain = k_drag · idle_N2 → dN2/dt = 0 pontosan N2 = idle-nál (ff_frac = 1 esetén). Tudd levezetni!
-- Hibadetektálás: időzítős logika (hung start: 8 s-ig nincs N2-növekedés; no light-off / wet start: 10 s-ig nincs gyújtás).
-- Tesztek: pytest, ~20 tesztmodul (plant, FADEC, hibák, playback, E/WD).
-
----
-
-## 5. Várt és valós eredmények – a kritikus kérdések
-
-### 5.1 A HP-tengely teljesítménymérlege (a legfontosabb)
-
-A saját 3. táblázatodból (h értékek, CEA abszolút entalpia):
-- HPC felvett teljesítménye: 56,9 · (524,8 − 127,3) ≈ **22,6 MW**
-- HPT leadott teljesítménye: 58,4 · (511,0 − (−16,0)) ≈ **30,8 MW**
-- → **≈ 8 MW többlet**, a HP tengely nincs egyensúlyban. Az LP tengely nagyjából rendben van (24,5 vs. 23,6 MW).
-
-**Ok:** a `cfm56.py`-ban `hpt.PR = 4.0` és `lpt.PR = 4.0` rögzített bemenet, nincs `Balance`, ami a `hp_shaft.pwr_net = 0` feltételt kikényszerítené. A HPT túl sok energiát von el → kevesebb jut a fúvócsőnek → ez **is** hozzájárul a tolóerő-hiányhoz.
-
-**Javítás (1–2 nap):** a pyCycle `high_bypass_turbofan` példája alapján `om.BalanceComp`:
-- `FAR` → cél: T4 = 1700 K (ez egyben megoldja a 4. pontot is),
-- `hpt.PR` → cél: `hp_shaft.pwr_net = 0`,
-- `lpt.PR` → cél: `lp_shaft.pwr_net = 0`,
-- (opcionálisan `W` → cél: Fn = 133,4 kN statikusan).
-Ellenőrzés: `prob.get_val('hp_shaft.pwr_net')` legyen ~0.
-
-**Ha nem javítod:** mondd ki, hogy ez a modell egyszerűsítése, és számold ki előttük a fenti mérleget. Ez a „saját munka” legerősebb bizonyítéka.
-
-### 5.2 „Miért ugyanaz az OPR és a BPR mindhárom fázisban?”
-Mert a `run_off_design()` minden fázisban **új tervezési pontot** old meg ugyanazokkal a PR és BPR bemenetekkel, és a tömegáram is rögzített 370 kg/s. Valódi off-design-ban a geometria (fúvócsőterület, jelleggörbék) rögzített, és az OPR, BPR, ṁ az üzemállapotból adódik: magasságon a fizikai tömegáram ~1/3-ára esik.
-**Javítás:** pyCycle multipoint (`MPhbtf` minta): 1 design pont + off-design pontok `design=False` módban, a design pont területeivel. Ha erre nincs idő: **nevezd át** „parametrikus design-point vizsgálatnak”, és írd le a korlátot.
-
-### 5.3 „Miért kevesebb a tolóerő 14,7 %-kal?”
-Sorrendben mondd:
-1. **Nem azonos körülmény:** 133,4 kN statikus (Mach 0) érték, a szimuláció Mach 0,25-ön fut → ram drag ≈ 31 kN. **Futtasd le Mach 0-n**, és hasonlítsd azt!
-2. A HP-tengely mérlege nincs egyensúlyban (5.1).
-3. Hűtőlevegő, beépítési és mechanikai veszteségek nincsenek modellezve.
-4. A tömegáram, T4 és a komponens-PR-ek becsültek.
-(A dolgozat szerint „a hűtőlevegő miatt kevesebb” – de hűtőlevegő nélkül inkább **több** jönne ki, mert nincs elvont levegő. Erre készülj!)
-
-### 5.4 „Miért ilyen kicsi az alapjárati tolóerő-csökkenés? (109 → 114 kN)”
-Mert a gázkar csak a FAR-t változtatja, a tömegáram és a nyomásviszonyok rögzítettek. Valóságban alapjáraton a fordulatszám, a tömegáram és az OPR is leesik, az idle tolóerő a maximumnak csak kb. 5–7 %-a. Ráadásul „0 %”-nál a T4 nem 1000 K, hanem **1379 K** (a FAR skálázás nem egyenes arányban adja a T4-et).
-
-### 5.5 „Miért kisebb alapjáraton az SFC?” / „Miért kisebb utazáskor az SFC?”
-- **Alapjárat:** a valóságban alapjáraton **nagyobb** az SFC (rossz részterhelési hatásfok). A modellben azért jön ki kisebbnek, mert a tolóerő szinte nem változik, az üzemanyag viszont igen. A dolgozat magyarázata („jobb a kompresszor hatásfoka 1000 K-en”) **nem helyes**: a hatásfokok a modellben konstans bemenetek. **Javítsd a szöveget.**
-- **Utazás:** a valós CFM56-5B TSFC utazáskor (~0,55 lb/lbf/h) **nagyobb**, mint statikusan felszálláskor, mert nő a repülési sebesség (ram drag, propulziós hatásfok). A modelled az ellenkezőjét adja, mert a fizikai tömegáram rögzített. Mondd ki: „Ez ellentmond az elvárásnak, és a rögzített tömegáramú design-point megközelítés következménye.” (Pont ez az, amit a bizottság kérdezni szokott: „Miben mond ellent az eredmény az elvárásainak?”)
-
-### 5.6 EGT anomália
-A DOKUMENTACIO 9.5 táblázatában 75 %-nál EGT = 754 °C, 100 %-nál 717 °C – ez nem monoton. A friss `lookup.pkl` szerint S5 100 %-nál 990 K = 717 °C. Nézd meg, a 75 %-os érték régi futásból maradt-e, és tedd rendbe.
-
-### 5.7 Indítási modell – ezek az erősségeid
-Várt = kapott, és tudod az okát:
-- **Normál:** STARTER ON → IGNITION → LIGHT-OFF (18 %) → STARTER CUTOUT (50 %) → IDLE (60 %).
-- **Hung (hideg fennakadás):** ff_cap = 0,7 → a turbinanyomaték nem elég, N2 ≈ 45 %-on beáll (Q_turbina = Q_ellenállás egyensúly alacsonyabb N2-n).
-- **Hot start:** fuel_mult = 1,8 → EGT csúcs > 725 °C.
-- **No fuel:** csak az indító forgat, N2 ≈ 22 %, EGT = környezeti, FF = 0.
-- **No ignition (wet start):** FF > 0, de nincs gyújtás → nedves indítás.
-- A FADEC **csak detektál**, nem abortál automatikusan. Tudd megindokolni, és tudd, hogy a valós A320 auto-start FADEC **automatikusan megszakít** a földön (hot/hung start, no light-off). Ez tervezési döntés volt: a hibák tüneteinek bemutatása és a személyzeti beavatkozás.
-- Korlát: az N1 = idle_N1 · (N2/idle)^1,5 és az EGT Gauss-csúcs **empirikus alakfüggvény**, nem fizikai számítás.
-
----
-
-## 6. 5 perces összefoglaló – kulcsszavas vázlat (ne szó szerint)
-
-1. **Téma, motiváció (30 s):** CFM56-5B, A320, legelterjedtebb hajtómű; cél: ciklus megértése szimulációval + üzemeltetési (pilótafülke) szemlélet.
-2. **Stacioner modell (1 perc):** pyCycle/OpenMDAO, kéttengelyes turbofan, komponensek, CEA, bemeneti adatok és forrásuk.
-3. **Eredmények (1 perc):** állomásadatok, T-s diagram, OPR/T4/tolóerő; 14,7 % eltérés – és **mi az oka** (Mach 0,25, tengelymérleg, egyszerűsítések).
-4. **Tranziens indítás + FADEC (1,5 perc):** tehetetlenségi ODE, indítási szekvencia, 4 hiba és tüneteik, detektálás.
-5. **App és validáció (30 s):** E/WD, tesztek, verziókezelés.
-6. **Kritikus értékelés és folytatás (30 s):** tengelyegyensúly, valódi off-design, hűtőlevegő, alapjárati modell összekötése a pyCycle-lel.
+1. **Téma (30 s):** CFM56-5B, A320-család; cél a ciklus megértése szimulációval, üzemeltetési (pilótafülke) szemlélettel.
+2. **Tervezési pont (1 perc):** pyCycle/OpenMDAO, kéttengelyes turbofan, CEA-gáztulajdonságok. Bemenet: 370 kg/s, BPR 5,5, OPR 27, T4 1700 K. A FAR a T4-et, a turbina-PR-ek a tengely-egyensúlyt zárják. Eredmény: 138,3 kN, 10,84 g/(kN·s).
+3. **Off-design (1 perc):** rögzített geometria, 3 repülési fázis, 21 gázkarállás, 63 pont, VBV-ütemezés. Felszállás 113,7 kN (a ram drag miatt), utazás kb. 22 kN-nál SFC 17,41.
+4. **Indítás és FADEC (1,5 perc):** tehetetlenségi ODE, szekvencia, 4 hiba tünetei, detektálás.
+5. **App és ellenőrzés (30 s):** E/WD, tesztek, kézi mérleg.
+6. **Kritikus értékelés (30 s):** SFC-eltérés oka, érvénytelen pontok, alapjárati szakadék, hűtőlevegő.
 
 Gyakorolj stopperrel, hangosan, 2–3 alkalommal.
 
 ---
 
+## 2. Szakirodalom – „Mit olvasott ebben?”
+
+**Szabály:** csak azt hivatkozd, amit ténylegesen kézben tartottál, és mindegyikről tudj 2–3 mondatot mondani. Ez a rész a tiéd: **egyetlen forrást sem tudtam ellenőrizni helyetted**, és azt sem, hogy olvastad-e.
+
+| # | Forrás | Mit kell tudnod róla | Teendő |
+|---|--------|----------------------|--------|
+| [4] | Mattingly: *Elements of Propulsion* | Turbofan ciklusanalízis, állomásszámozás, tolóerő, TSFC | Olvasd el a turbofan parametrikus ciklusanalízist |
+| [5] | Çengel–Boles: *Thermodynamics* | Brayton-ciklus, izentropikus hatásfok, T-s diagram | – |
+| [6] | Cumpsty–Heyes: *Jet Propulsion* | Tolóerő, propulziós hatásfok, BPR szerepe | – |
+| [7] | Walsh–Fletcher: *Gas Turbine Performance* | Design és off-design, jelleggörbék, tranziens | Olvasd el az off-design fejezetet |
+| [11] | Kurzke–Halliwell: *Propulsion and Power* | Teljesítménymodellezés, hűtőlevegő, jelleggörbe-skálázás | – |
+| [8] | Hendricks–Gray (2019), *Aerospace* 6(8):87 | A pyCycle módszere, CEA-alapú termodinamika | Olvasd el, nyílt hozzáférésű |
+| [9] | pyCycle repó | A `high_bypass_turbofan` mintapélda, ezt követi a modell | Tudd, miben tér el tőle: VBV, nincs hűtőlevegő |
+| [10] | Gray et al. (2019) OpenMDAO | Newton-megoldó, implicit komponensek | – |
+| [14] | EASA TCDS E.003 | Tolóerő, N1/N2 és EGT-határok, fokozatszám | Keresd meg benne a saját számaidat |
+| [2] | Aircraft Commerce No. 50 | -5A/-5B specifikációk, EGT margin, /P és /3 változatok | Ellenőrizd az oldalszámot |
+| [13] | Wikipedia: CFM56 | Tömegáram-tartomány, SFC-értékek | **Gyenge forrás, és erre épül a validáció.** Keress elsődleges forrást |
+| [15] | Airbus FCOM | Indítási küszöbök, alapjárati értékek | **A dolgozat is jelzi:** a kiadás és a fejezet pontosítandó |
+| [3] | ICAO Emissions Databank | LTO-ciklus, alapjárati fogyasztás | Nézd meg a -5B1 sorát |
+| [1], [12] | CFM-kiadványok | Történet, LEAP | **Keresd meg.** Ha nem találod, cseréld le |
+
+Ezeket a tényállításokat is ellenőrizd, mert rákérdezhetnek:
+- „több mint 20 000 darab” a CFM56-5B-ből. Valószínűleg a teljes CFM56-családra igaz, nem a -5B-re.
+- CFM56-5A „1987-ben állt szolgálatba”. Nézd meg, hogy ez a tanúsítás vagy a forgalomba állás éve.
+
+---
+
+## 3. Előismeretek – képletek a saját számaiddal
+
+Ezeket tudd **táblán, fejből** levezetni. Tervezési pont: 288,2 K és 101,3 kPa belépés, FAR = 0,02632.
+
+**Ideális Brayton-hatásfok**
+η_th = 1 − OPR^(−(γ−1)/γ) = 1 − 26,96^(−0,2857) ≈ **0,61**. A valós ennél lényegesen kisebb.
+
+**Kompresszió összesített izentropikus hatásfoka**
+T3s = 288,2 · 26,96^0,2857 ≈ 738,5 K → η_c = (738,5 − 288,2)/(795,8 − 288,2) ≈ **0,887**. Összhangban van a megadott 0,87–0,89 értékekkel.
+
+**Magáram és tüzelőanyag**
+ṁ_core = 370/(1 + 5,5) = 56,9 kg/s → ṁ_f = 0,02632 · 56,9 ≈ **1,50 kg/s**
+
+**Teljesítménymérleg (a legjobb kézi bizonyíték)**
+
+| Tengely | Felvett | Leadott |
+|---------|---------|---------|
+| HP | HPC: 56,9 · (514,8 − 122,0) = **22,36 MW** | HPT: 58,4 · (501,6 − 118,8) = **22,36 MW** |
+| LP | Fan: 370 · (37,9 + 14,4) = 19,35 MW; LPC: 56,9 · (122,0 − 37,9) = 4,78 MW; együtt **24,13 MW** | LPT: 58,4 · (118,8 + 294,2) = **24,13 MW** |
+
+**Tolóerő statikusan:** Fg = 138,41 kN = mag 42,32 kN + bypass 96,09 kN
+- Mag: **fojtott**, M = 1,0, Ps = 143,7 kPa, V = 592 m/s, A = 0,182 m². Impulzus 58,4 · 592 = 34,6 kN + nyomáserő (143,7 − 101,3) kPa · 0,182 m² = 7,7 kN → 42,3 kN.
+- Bypass: nem fojtott, M = 0,90, V = 308 m/s. 313,1 · 308 = 96,3 kN, a Cv = 0,9975 veszteséggel 96,1 kN.
+
+**Ram drag Mach 0,25-ön:** V0 ≈ 85 m/s → 381,4 · 85 ≈ **32,5 kN**. Fn = 146,1 − 32,5 = 113,7 kN
+
+**SFC átváltás:** 1 lb/(lbf·h) ≈ 28,3 g/(kN·s). Tehát 10,84 g/(kN·s) ≈ 0,38; 17,41 ≈ 0,61; a közölt 15,4 ≈ 0,54 lb/(lbf·h).
+
+**Összhatásfok utazáskor** (Fn = 21,7 kN, ṁ_f = 0,378 kg/s, V0 ≈ 231 m/s, LHV ≈ 43 MJ/kg):
+η_0 = F·V0/(ṁ_f·LHV) = 5,0 MW / 16,3 MW ≈ **0,31**
+
+**Még ezekre készülj:**
+- Izentropikus hatásfok kompresszorra és turbinára: miért fordított a tört.
+- Propulziós hatásfok: η_p = 2/(1 + V_j/V_0). Ezért jó a nagy BPR. Termikus × propulziós = összhatásfok.
+- ISA: T = 288,15 − 6,5·h [km] 11 km-ig; 35 000 ft ≈ 218,85 K, ≈ 23,8 kPa.
+- Össz- és statikus állapot: T_t = T·(1 + (γ−1)/2·M²). Mach 0,78-on 218,85 K → 245,5 K.
+- Kompresszor-jelleggörbe: nyomásviszony, korrigált tömegáram, korrigált fordulatszám, pompázshatár, R-line.
+- Mi a VBV, és miért nyit részterhelésen.
+- Fojtott fúvócső: kritikus nyomásviszony ≈ 1,85–1,9. A mag 2,62-vel fojtott, a bypass 1,68-cal nem.
+- Kéttengelyes felépítés: fan + LPC + LPT az LP, HPC + HPT a HP tengelyen.
+- Miért az N2-t forgatja az indítómotor: az AGB a HP tengelyről hajtódik.
+- FADEC feladata: tüzelőanyag-adagolás, indítási szekvencia, határérték-felügyelet.
+- A CFM56 elsődleges tolóerő-paramétere az **N1**, nem az EPR. A modell EPR-je csak számított kijelzés.
+
+**Miért csökken S3→S4 között az entalpia (514,8 → 501,6), ha a gáz melegszik?** Mert a CEA abszolút entalpiát számol, amely tartalmazza a képződési entalpiát, és az égés megváltoztatja az összetételt. Ezért csak azonos összetételű különbségek értelmezhetők fajlagos munkaként.
+
+---
+
+## 4. Kiinduló adatok – „Honnan van ez a szám? Milyen közelítéssel?”
+
+| Adat | Érték | Eredet – amit mondhatsz |
+|------|-------|--------------------------|
+| Referencia-tolóerő | 133,45 kN (-5B1) | EASA TCDS. **Statikus** érték, ezért a statikus modellel kell összevetni |
+| BPR | 5,5 | Nyilvános összesítő adat [13]. Tervezési **bemenet** |
+| OPR | 27 | **Saját felvétel**, a fan/LPC/HPC PR szorzata adja |
+| Fan / LPC / HPC PR | 1,685 / 2,0 / 8,0 | **Saját felvétel**, valós komponens-PR nem publikus |
+| Hatásfokok | 0,87–0,90 | Tipikus szakirodalmi értékek [4], [7], nem CFM-adat |
+| T4 | 1700 K | **Saját becslés**, a CFM56-5B értéke nem publikus |
+| Tömegáram | 370 kg/s | A 368–439 kg/s tartományból [13]. Tervezési **bemenet** |
+| FAR | 0,0263 | **Eredmény**, a balance adja a T4-ből |
+| HPT / LPT PR | 2,665 / 3,745 | **Eredmény**, a tengely-egyensúly adja |
+| Égőtéri nyomásveszteség | 3 % | Tipikus érték |
+| Fúvócső Cv | 0,9999 / 0,9975 | A pyCycle mintapéldából átvett érték. Ellenőrizd, és tudd megindokolni |
+| Jelleggörbék | AXI5, LPCMap, HPCMap, HPTMap, LPTMap | pyCycle mintagörbék, a tervezési pontra skálázva. **Nem CFM56-mérés** |
+| 100 % fordulatszám | N1 5000, N2 14 460 1/min | TCDS: 5200 = 104 %, 15 183 = 105 % |
+| VBV-ütemezés | 1650 K felett zárt, 1000 K-nél 30 % | **Saját egyszerűsítés.** A valódi FADEC a korrigált N2-ből vezérli |
+| Gázkar | T4 = 1000 + 7 · gázkar% | **Saját leképezés.** A valódi kar N1-célt ad a FADEC-nek |
+| Gáztulajdonságok | CEA, Jet-A(g) | Hőmérséklet- és összetételfüggő |
+| Entrópia a T-s diagramon | cp = 1,005; R = 0,287 | Kalorikusan tökéletes gáz, magas T-n pontatlan |
+| Indítási paraméterek | I = 10, k_d = 1, Q_0 = 40 | **Normalizált, hangolt**, nem fizikai mértékegységű |
+| Alapjárat | N2 60 %, N1 19 %, EGT 450 °C | Üzemeltetési értékek [15], pontosítandó |
+| Alapjárati FF | 600 kg/h | **Hangolt érték, forrás nélkül.** Vesd össze az ICAO alapjárati adatával, mert valószínűleg túl nagy |
+| Start EGT-határ | 725 °C | EASA TCDS [14] |
+| Light-off N2 | 18 % | Egyszerűsítés: a valós gyújtás ~16 %, a HP tüzelőanyag-szelep ~22 % [15] |
+| Indító kioldás | 50 % N2 | [15] |
+
+Fontos különbség, amit tudj kimondani: **a BPR, OPR, T4 és tervezési tömegáram egyezése nem validálás**, mert ezek bemenetek. Off-design pontokban már eredmények.
+
+---
+
+## 5. Módszer – „Milyen más módszert alkalmazhatott volna?”
+
+**Stacioner ciklusanalízis alternatívái:**
+- **Kézi vagy táblázatos 0D számítás** (Mattingly): átlátható, de konstans cp és off-design nélkül.
+- **GasTurb** (Kurzke): oktatásban és iparban elterjedt, kész jelleggörbékkel. Fizetős, zárt.
+- **NPSS** (NASA/SwRI): ipari standard, nem szabadon elérhető.
+- **GSP** (NLR): objektumorientált, tranziens is.
+
+**Tranziens alternatívái:**
+- **T-MATS** (NASA, MATLAB/Simulink): dinamikus modell szabályozókkal.
+- **Komponensszintű modell** idle alá extrapolált jelleggörbékkel: a jelleggörbék ott nem ismertek.
+- **Adatvezérelt modell** QAR/FDR-felvételekből: ehhez nem volt adat.
+
+**Miért ez lett a választás:**
+- pyCycle: ingyenes, nyílt, Python, így saját vizualizációval és appal összeköthető, és implicit balance-okkal zárható a ciklus.
+- Az indítás külön modell, mert idle alatt nincs jelleggörbe, és élőben kell futnia. A cél a **jelenségek és a tünetek** bemutatása, nem a pontos számok.
+
+**Numerika:**
+- Cikluszárás: OpenMDAO Newton-megoldó, `BalanceComp`. Tervezésnél FAR → T4, HPT PR → HP pwr_net = 0, LPT PR → LP pwr_net = 0.
+- Off-design: FAR → T4; W → mag-fúvócső terület; BPR → bypass-fúvócső terület; N1, N2 → tengely-egyensúly.
+- Continuation: a Newton csak közeli kezdőpontból konvergál, ezért legfeljebb 2500 ft / 0,05 Mach / 50 K lépések.
+- Minden pont ellenőrzött: T4-cél, tengelymérleg, jelleggörbe-tartomány, fordulatszám-határ.
+- Indítás: I·dN2/dt = Q_indító + Q_turbina − Q_ellenállás, **explicit Euler**, Δt = 0,5 s. Stabil, mert I/k_d = 10 s ≫ 0,5 s. Pontosabb lenne az RK4.
+- Idle-egyensúly: k_t = k_d · N2_idle, ezért f_FF = 1-nél dN2/dt = 0 pontosan N2 = 60 %-nál. Tudd levezetni!
+- Trend az appban: elsőrendű késleltetés, τ = 4 s, nem számított tengelydinamika.
+
+**Indítási hibák kézi levezetése:**
+- Nincs tüzelőanyag vagy gyújtás: 40·(1 − N2/50) = N2 → N2 = **22,2 %** (szimuláció: 22,1 %).
+- Hung start: 40·(1 − N2/50) + 42 = N2 → N2 = **45,6 %** (szimuláció: 45,5 %). Az 50 % nincs elérve, ezért az indító nem old ki.
+
+| Forgatókönyv | Gyökok | Tünet | Jelzés |
+|--------------|--------|-------|--------|
+| Normál | – | IDLE 60,5 s, EGT-csúcs 633 °C | – |
+| Hung | f_FF ≤ 0,7 | N2 45,5 %, N1 12,5 % | HUNG START, 43,5 s |
+| Hot | tüzelőanyag × 1,8 | EGT-csúcs 977 °C, **de eléri az alapjáratot** | EGT EXCEEDANCE, 10 s |
+| No fuel | szelephiba | N2 22,1 %, EGT 15 °C, FF = 0 | NO LIGHT-OFF, 18,5 s |
+| No ignition | gyújtóhiba | N2 22,1 %, EGT 15 °C, FF = 255 kg/h | WET START, 18,5 s |
+
+**Ellenőrzés:** 97 pytest-teszt, kézi mérleg, megrekedési fordulatszámok levezetése.
+
+---
+
+## 6. Várt és valós eredmények
+
+| Fázis | T4 [K] | ṁ [kg/s] | Fn [kN] | Ram drag [kN] | SFC [g/(kN·s)] | OPR | BPR | N1 / N2 [%] | Érvényes? |
+|-------|--------|----------|---------|---------------|----------------|-----|-----|-------------|-----------|
+| Statikus tervezési pont | 1700 | 370,0 | 138,3 | 0,1 | 10,84 | 26,96 | 5,50 | 100 / 100 | igen |
+| Felszállás, M 0,25 | 1700 | 381,4 | 113,7 | 32,5 | 13,44 | 26,42 | 5,55 | 100,2 / 100,3 | igen |
+| Emelkedés, 15 000 ft, M 0,50 | 1700 | 264,9 | 69,0 | 42,7 | 16,10 | 29,44 | 5,37 | 101,8 / 99,0 | igen |
+| Utazás, 35 000 ft, M 0,78 | 1700 | 152,3 | 36,1 | 35,2 | 18,80 | 33,59 | 5,11 | 107,1 / 97,8 | **nem** |
+| Utazás, legnagyobb érvényes | 1490 | 139,4 | 25,5 | 32,3 | 17,48 | 24,74 | 5,56 | 91,7 / 91,9 | igen |
+| Utazás, kb. 22 kN | 1420 | 133,7 | 21,7 | 30,9 | 17,41 | 22,02 | 5,64 | 89,6 / 90,2 | igen |
+
+**Ami megfelel az elvárásnak:**
+- A tolóerő és a tömegáram a magassággal csökken.
+- Az SFC a repülési sebességgel nő: 10,84 → 13,44 → 17,4.
+- Az SFC-görbe U alakú a gázkar függvényében. Minimum felszállásnál 12,28 (55 %), emelkedésnél 15,09 (60 %).
+- Az N1 kb. 100 % felszállásnál, amit a modell nem kapott bemenetként.
+
+**Ami ellentmond az elvárásnak, és amit mondhatsz:**
+
+**6.1 Több a tolóerő, mégis rosszabb az SFC.** 138,3 kN a 133,4-del szemben (+3,7 %), de SFC +8…+17 % statikusan, +13 % utazáskor. Hűtőlevegő nélkül a modell felfelé torzítja a tolóerőt, tehát az SFC-eltérés oka inkább a becsült ciklus: az OPR 27 és a hatásfokok. Kalibrálás nem történt.
+
+**6.2 Miért 113,7 kN a felszállásnál, ha 133 kN a névleges?** Mert 133,4 statikus adat. Mach 0,25-ön kb. 32,5 kN a ram drag. Az érték nem hiba, a két állapot nem hasonlítható össze.
+
+**6.3 Utazáskor T4 = 1700 K-nél N1 = 107 %.** A TCDS-határ 104 %, és az LPC lefut a jelleggörbéről (R-line 112). A modellben a gázkar T4-et állít, a valódi FADEC viszont N1-et vezérel és korlátoz, ezért a valódi hajtómű ide nem jutna el. Utazásnál az érvényes tartomány 10–70 %.
+
+**6.4 13 érvénytelen pont a 63-ból.**
+
+| Fázis | Érvénytelen gázkarállások | Ok |
+|-------|---------------------------|-----|
+| Felszállás | 0, 5 % | fan R-line > 2,6 |
+| Emelkedés | 0, 5, 10 % | fan R-line > 2,6 |
+| Utazás | 0, 5 % és 75–100 % | fan R-line, illetve LPC off map; 95–100 %-nál N1 > 104 % |
+
+Ezek megmaradtak az adatsorban, de meg vannak jelölve, és az app figyelmeztet rájuk. A 75 %-os és annál nagyobb gázkarállású utazási pontok az LPC R-line miatt megbízhatatlanok, az eredményeidben ne hivatkozz rájuk.
+
+**6.5 A 0 % gázkar nem alapjárat.** T4 = 1000 K-nél N1 = 75,7 %, tolóerő 14,9 kN (a statikus érték 11 %-a), a valódi alapjárat kb. N1 20 %. Az igazi alapjárat a jelleggörbék tartományán kívül van, ezért ott a modell nem ad megbízható eredményt.
+
+**6.6 Szakadék az indítás és a ciklusmodell között.** Az indítás N1 ≈ 19 %-nál ér véget, a legalacsonyabb ciklusmodell-pont N1 ≈ 76 %. Az app ezt elsőrendű késleltetéssel köti össze, tehát **ez az átmenet nem fizikai számítás**. A bemutatón ezt mondd ki, mielőtt megkérdezik (7. fejezet).
+
+**6.7 Az EGT alacsony.** A modell 798 °C-ot ad felszálláskor a 950 °C-os határ mellett. A modell EGT-je az **LPT kilépő** (S5) hőmérséklete, a valódi mérés viszont a T49.5 pont, az LPT belsejében, ahol a gáz még melegebb. Tehát a kettő nem azonos pont, ezért nem hasonlítható össze közvetlenül. Emellett a 1700 K is becslés.
+
+**6.8 Light-off után a turbina önmagában is gyorsítana.** N2 = 18 %-nál a turbina 60 · 0,35 = 21, az ellenállás 18 egység. A valódi hajtómű ennél jóval később válik önfenntartóvá, ezért kell az indító kb. 50 %-ig. Az alak hangolt, nem fizikai.
+
+**6.9 A FADEC nem szakít meg.** A valódi A320 automatikus indításnál földön bizonyos hibáknál magától megszakít. Itt csak detektál, hogy a hiba teljes lefolyása látható legyen. Ez tudatos egyszerűsítés.
+
+**6.10 A „melegfennakadás” elnevezés.** A HOT forgatókönyvben a hajtómű nem akad fenn, hanem túlmelegszik és eléri az alapjáratot. Ez *hot start*, nem *hot hang*. Nézd meg a konzulenseddel egyeztetett megnevezést.
+
+**6.11 Miért nagyobb az OPR emelkedésnél, mint felszállásnál?** Az emelkedési OPR 29,4, a felszállási 26,4. A hidegebb belépő levegő miatt nagyobb a korrigált fordulatszám. Utazáskor 1700 K-nél 33,6 lenne, de az a pont érvénytelen.
+
+---
+
 ## 7. Bemutató forgatókönyv (projektor)
 
-Előtte: `streamlit run app.py` fusson már, a böngésző legyen nyitva, és legyen **offline tartalék** (képernyővideó vagy képernyőképek), ha nincs internet vagy leáll.
+**Előkészítés, napokkal előtte:**
 
-1. **App – normál indítás:** ENG MODE IGN/START → MASTER ON → mutasd az E/WD-n a light-off-ot, az indító kioldását és az idle-t. Közben mondd a számokat.
-2. **Hot start** → EGT piros, EGT EXCEEDANCE. Magyarázd a gyökokot.
-3. **Hung start** → N2 megreked. Magyarázd az egyensúlyt az ODE-ből.
-4. **Gázkar + ciklusanalízis** → állomás-diagram, T-s diagram, 3D modell.
-5. **Kód:** `engine/start_transient.py` → `dN2_dt()` (az egyenlet 1:1-ben látszik), `engine/cfm56.py` → `CFM56_PARAMS`.
-6. **Tesztek:** `pytest -q` a terminálban.
-7. **Kézi számítás** (papír/tábla): η_c ≈ 0,889 és a HP teljesítménymérleg.
+```bash
+cd Engine/Engine
+.venv/bin/python -m streamlit run app.py
+```
+
+- **A .venv környezetet használd.** A gép alap `python3.12` környezete régi Streamlitet tartalmaz (1.37), amellyel az app `TypeError`-ral leáll.
+- Az app élőben nem futtatja a pyCycle-t, a `data/lookup.pkl`-ből olvas. Ettől gyors, ezt tudd elmondani.
+- Legyen **offline tartalék** (képernyővideó vagy képernyőképek), és próbáld ki a projektor felbontásán.
+
+**Menet:**
+1. **Normál indítás:** MODE IGN/START → ENG 1 ON. Mutasd a light-off-ot (9 s), a kioldást (31,5 s), az IDLE-t (60,5 s). A sebesség 1/5/10-szeres.
+2. **Figyelem:** IDLE után az E/WD magától kb. 76 % N1-re fut fel, és megjelenik az érvénytelen pont figyelmeztetése, mert a csúszka 0 %-on áll, ami nem alapjárat. **Mondd ki előre:** ez a 6.6 pont, a két modell közti szemléltető átmenet.
+3. **Gázkar:** csúszka 50–100 %, trend, majd állomás- és T-s diagram, 3D modell. Válts Cruise-ra, és húzd 75 % fölé: mutasd a figyelmeztetést (6.3).
+4. **Hot start:** ENG 1 OFF, scenario HOT, újraindítás → EGT 977 °C, EGT EXCEEDANCE. Magyarázd a gyökokot.
+5. **Hung start:** N2 45,5 %-on megreked. Vezesd le az egyensúlyt.
+6. **Kód:** `engine/start_transient.py` → `dN2_dt()`, `engine/cfm56.py` → `CFM56_PARAMS` és a balance-ok.
+7. **Tesztek gyorsan** (a teljes készlet kb. 2,5 perc, ezért bemutatón csak ez, 1 másodperc alatt fut):
+
+```bash
+.venv/bin/python -m pytest -q -W ignore tests/test_start_plant.py tests/test_start_faults.py tests/test_fadec.py tests/test_simulate_start.py
+```
+
+8. **Kézi számítás a táblán:** η_c ≈ 0,887 és a HP-mérleg.
 
 ---
 
-## 8. Teendőlista a meghallgatásig
+## 8. Javítandó a dolgozatban
 
-**Kötelező (a meghallgatás előtt):**
-- [ ] Minden hivatkozást megkeresni; a [11]-et javítani; amit nem találsz, cserélni.
-- [ ] Tömegáram-ellentmondás (172 vs. 370 kg/s) – forrásból eldönteni.
-- [ ] Ideális Brayton-hatásfok: 47 % → 61 %.
-- [ ] Az SFC-magyarázatok átírása (5.5).
-- [ ] Minden képletet és számot fejből levezetni (2. fejezet).
-- [ ] Az app fusson egy friss gépen is (`requirements.txt`-ből a pyCycle hiányzik – a lookup.pkl előre kiszámolt, ezt tudd elmondani).
+A dolgozat számai megegyeznek a jelenlegi modellel. Ezek a szöveges pontatlanságok maradtak. Szándékosan nem írtam át őket, mert a dolgozat szövegét neked kell megvédened.
+
+| Fejezet | Mostani szöveg | Probléma | Javítás iránya |
+|---------|----------------|----------|----------------|
+| Bevezetés | „több mint 20 000 darabot” a -5B-ből | Valószínűleg a családra igaz | Forrásból ellenőrizni |
+| 2.1 | A ciklus „három fő folyamatból áll” | A zárt ideális ciklus négy folyamat | Hozzávenni az izobár hőelvonást |
+| 2.1 | Az égés „vízszintes” szakasz a T-s diagramon | Az izobár hőközlés emelkedő görbe, T és s is nő. A kompresszió és expanzió közel függőleges | Átírni |
+| 2.3 | A gázkar „fizikailag a tüzelőanyag-adagoló szelepet vezérli” | Az A320-on a kar a FADEC-nek ad parancsot, N1-célt | Pontosítani |
+| 3.1 | openmdao 3.39, „pontos verziók” | Mostantól rögzítve: openmdao 3.45.2, numpy 2.2.6 | Frissíteni |
+| 3.2 | „A fúvócsövek a környezeti statikus nyomásra expandálnak” | A mag fojtott (M = 1, Ps = 143,7 kPa), nyomáserő keletkezik. A 2.4 tolóerő-képlete ezt jól tartalmazza | Pontosítani |
+| 4.1 | Az „entalpia-különbség negatív előjelű értékei” | Nem a különbség, hanem egyes állomások abszolút h-ja negatív | Pontosítani, kiegészíteni a 3. fejezet S3→S4 magyarázatával |
+| 5.5 | „legkisebb érvényes gázkarállása (T4 = 1000 K, N1 ≈ 76 %)” | A 0 % és 5 % érvénytelen. A legkisebb érvényes felszállásnál 10 %: 1070 K, N1 80,2 % | Javítani |
+| 5.4 | „melegfennakadás” | Lásd 6.10 | Megnevezés egyeztetése |
+| 6.1 | Az EGT nincs értékelve | S5 és T49.5 eltérése | Kiegészíteni 6.7 alapján |
+| Nyilatkozat | „2026. május” | Elavult dátum | Leadáskor frissíteni |
+
+A dolgozatot a `generate_thesis.py` generálja. Ha a `.docx`-et kézzel szerkeszted, ne futtasd újra, mert felülírja.
+
+---
+
+## 9. Teendőlista a meghallgatásig
+
+**Kötelező:**
+- [ ] Minden hivatkozást kézbe venni; amit nem találsz, cserélni (2. fejezet).
+- [ ] A Wikipedia [13] SFC-adatait elsődleges forrással kiváltani vagy alátámasztani.
+- [ ] Az FCOM [15] kiadását és fejezetét pontosítani.
+- [ ] A 8. fejezet pontjait saját szavaiddal javítani.
+- [ ] Az alapjárati 600 kg/h-t az ICAO-adattal összevetni.
+- [ ] Minden képletet fejből levezetni (3. fejezet).
 - [ ] 5 perces összefoglaló gyakorlása.
+- [ ] Bemutató végigpróbálása a `.venv`-ből, offline tartalék elkészítése.
+- [ ] Átgondolni, pontosan mire használtál MI-t, és hogyan mondod el (0. fejezet).
 
-**Erősen ajánlott (3–5 hét alatt a végleges dolgozathoz):**
-- [ ] Balance-ok a pyCycle modellbe (T4 cél, tengelyek pwr_net = 0) → újrafuttatás.
-- [ ] Mach 0 statikus futtatás és összehasonlítás a 133,4 kN-nal.
-- [ ] Valódi off-design (multipoint), vagy a fejezet átnevezése és a korlát leírása.
-- [ ] Új fejezet a dolgozatba: tranziens indítás, FADEC, indítási hibák, pilótafülke-app.
-- [ ] Az ellentmondó táblázatok egységesítése (climb 10 000 vs. 15 000 ft; cruise tolóerő 52,4 vs. 49,5 kN; N1/N2 képletek).
-- [ ] A dolgozat szövegét saját szavaiddal átírni. Minden mondatot meg kell tudnod védeni.
+**Ajánlott, ha marad idő:**
+- [ ] A dolgozat szövegét végig saját szavaiddal átírni. Minden mondatot meg kell tudnod védeni.
+- [ ] Kalibrálás: az OPR és a hatásfokok hatása az SFC-eltérésre.
+- [ ] Hűtőlevegő beépítése.
 
 ---
 
-## 9. Gyors válaszok nehéz helyzetekre
+## 10. Gyors válaszok nehéz helyzetekre
 
-- **„Ezt nem tudom.”** → „Ezt nem vizsgáltam, de úgy közelíteném meg, hogy…” – mondj egy módszert.
-- **„Ez hibás.”** → „Igen, ezt én is észrevettem: az oka … a végleges dolgozatban így javítom: …”
-- **„Honnan van ez?”** → mondd meg őszintén, ha becsült/hangolt érték, és mi alapján hangoltad.
-- **„Használt MI-t?”** → Légy őszinte arról, mire használtál eszközöket (pl. kódolási segítség), és mutasd meg, hogy **te döntöttél** a modellről, a feltevésekről, és te érted és ellenőrizted az eredményt. A kézi ellenőrző számítások (η_c, tengelymérleg, ram drag) pont ezt bizonyítják.
+- **„Ezt nem tudom.”** → „Ezt nem vizsgáltam, de úgy közelíteném meg, hogy…”, és mondj egy módszert.
+- **„Ez hibás.”** → „Igen, az oka …, és a végleges dolgozatban így javítom: …”
+- **„Honnan van ez?”** → Mondd meg őszintén, ha becsült vagy hangolt érték, és mi alapján.
+- **„Használt MI-t?”** → Igen, és mondd el pontosan, mire. Mutasd meg, hogy érted és ellenőrizted az eredményt: a kézi számítások (η_c, tengelymérleg, ram drag, megrekedési N2) erre valók. Olyat ne állíts, ami nem igaz.

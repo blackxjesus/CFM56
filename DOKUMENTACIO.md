@@ -1,48 +1,47 @@
-# CFM56 Hajtőmű Termodinamikai Modell — Projektdokumentáció
+# CFM56 Hajtómű Termodinamikai Modell — Projektdokumentáció
 
-**Szakdolgozat:** Repülőgéphajtómű termodinamikai modellezése  
-**Intézmény:** Nyíregyházi Egyetem, Műszaki és Agrártudományi Intézet  
-**Hajtőmű:** CFM International CFM56-5B  
-**Dátum:** 2026-05-19
+**Szakdolgozat:** CFM56-5B repülőgéphajtómű termodinamikai ciklus-analízise Python alapú szimulációval
+**Intézmény:** Nyíregyházi Egyetem, Műszaki és Agrártudományi Intézet
+**Hajtómű:** CFM International CFM56-5B (vizsgált változat: -5B1)
+**Dokumentáció állapota:** 2026-11-01. A számok forrása a `data/results.csv` és a `data/design_point.pkl`.
 
 ---
 
 ## 1. Projekt áttekintés
 
-### Cél
-A CFM56-5B kétáramú turbofan hajtőmű termodinamikai szimulációja Python alapú eszközökkel. A szimuláció lefedi:
-- **Design point analízis** — felszállási üzemi állapot termodinamikai paraméterei
-- **Off-design analízis** — paraméterek változása felszállás → emelkedés → cruise fázisokban
-- **2D/3D vizualizáció** — állomás-diagram, T-s diagram, forgástest modell
+A projekt a CFM56-5B kétáramú turbofan hajtómű Python alapú szimulációja. Három részből áll:
+
+1. **Stacioner ciklusmodell** (pyCycle): tengely-egyensúllyal zárt tervezési pont statikus felszállásra, és valódi off-design számítás rögzített geometriával.
+2. **Tranziens indítási modell** (tiszta Python): redukált rendű HP-tengely modell, FADEC-logika, négy indítási hiba.
+3. **Interaktív pilótafülke-alkalmazás** (Streamlit): kattintható ENG panel, élő E/WD, trendek, ciklusdiagramok.
 
 ---
 
 ## 2. Szoftverek és eszközök
 
-### Fő szimulációs keretrendszer
-| Eszköz | Verzió | Leírás | Telepítés |
-|--------|--------|--------|-----------|
-| **pyCycle** | legújabb | NASA nyílt forráskódú gázturbina ciklus-analizáló | `pip install om-pycycle` |
-| **OpenMDAO** | legújabb | NASA optimalizációs keretrendszer (pyCycle alapja) | automatikusan települ |
-| **Python** | 3.10+ | Programozási nyelv | [python.org](https://www.python.org) |
+A pontos verziók a `requirements.txt` fájlban rögzítettek.
 
-### Vizualizáció
-| Eszköz | Leírás | Telepítés |
-|--------|--------|-----------|
-| **Matplotlib** | 2D grafikonok (T-s diagram, állomás-diagram) | `pip install matplotlib` |
-| **Plotly** | Interaktív 3D forgástest vizualizáció | `pip install plotly` |
-| **NumPy** | Numerikus számítások | `pip install numpy` |
+| Eszköz | Verzió | Szerep |
+|--------|--------|--------|
+| Python | 3.12 | Futtatókörnyezet |
+| om-pycycle | 4.4.0 | NASA gázturbina-ciklusmodell |
+| OpenMDAO | 3.45.2 | Implicit megoldó keretrendszer |
+| NumPy | 2.2.6 | Numerika. **A pyCycle 4.4.0 NumPy 2.3+ alatt hibával leáll** |
+| Streamlit | 1.66.1 | Alkalmazás. **Legalább 1.50 kell** a `width='stretch'` miatt |
+| Matplotlib | 3.11.2 | 2D diagramok |
+| Plotly | 7.1.0 | Trendek és 3D modell |
+| Pillow, streamlit-image-coordinates | 13.0.0, 0.4.1 | Kattintható ENG panel |
 
-### Fejlesztőkörnyezet
-| Eszköz | Leírás |
-|--------|--------|
-| **Jupyter Notebook** | Interaktív futtatás, dokumentálás | `pip install jupyter` |
-| **VS Code** | Kódszerkesztő |
+Fejlesztéshez külön: `pytest` (tesztek), `python-docx` (dokumentum-generálás), `jupyter` (notebookok).
 
-### Összes függőség egyszerre
 ```bash
-pip install om-pycycle matplotlib plotly numpy jupyter
+python3.12 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+.venv/bin/pip install pytest python-docx
+.venv/bin/python -m streamlit run app.py
 ```
+
+Ismert korlát: a Streamlit jelzi, hogy a `st.components.v1.html` kivezetésre kerül (`st.iframe` a helyettesítője). Az 1.66.1 verzióval még működik, ezért rögzített a verzió.
 
 ---
 
@@ -50,58 +49,86 @@ pip install om-pycycle matplotlib plotly numpy jupyter
 
 ```
 Engine/Engine/
+├── app.py                     # Streamlit pilótafülke-alkalmazás
+├── precompute.py              # 63 off-design pont kiszámítása a data/ mappába
+├── generate_thesis.py         # A dolgozat .docx generátora
 ├── engine/
-│   ├── __init__.py
-│   ├── cfm56.py          # CFM56 paraméterek és modell definíció
-│   ├── simulation.py     # run_design_point(), run_off_design()
-│   └── results.py        # EngineResults osztály, adatok tárolása
+│   ├── cfm56.py               # Paraméterek, CFM56Cycle, CFM56MultiPoint, VBV-ütemezés
+│   ├── simulation.py          # run_design_point(), OffDesignSolver, run_off_design()
+│   ├── results.py             # EngineResults, StationData, StartTransient
+│   ├── start_transient.py     # Indítási plant-modell és simulate_start()
+│   ├── fadec.py               # ENG MODE / MASTER / BLEED → vezérlőparancsok
+│   ├── playback.py            # Lejátszás és pilótafülke-állapotgép
+│   └── trend.py               # Folytonos trend elsőrendű késleltetéssel
 ├── visualization/
-│   ├── __init__.py
-│   ├── station_diagram.py   # 2D állomás-diagram T és P értékekkel
-│   ├── ts_diagram.py        # T-s Brayton-ciklus diagram
-│   └── model_3d.py          # 3D forgástest Plotly-val
-├── notebooks/
-│   ├── 01_design_point.ipynb     # Design point analízis
-│   ├── 02_off_design.ipynb       # Off-design analízis
-│   └── 03_visualization.ipynb   # 2D/3D vizualizáció
-├── scripts/
-│   ├── run_design.py        # Design point futtatás
-│   └── run_off_design.py    # Off-design futtatás
-├── DOKUMENTACIO.md          # Ez a fájl
-├── requirements.txt
-└── README.md
+│   ├── ewd.py                 # A320 E/WD kijelző (SVG)
+│   ├── airbus_panel.py        # Kattintható ENG panel
+│   ├── ecam.py                # EPR-számítás, ECAM-segédfüggvények
+│   ├── start_plot.py          # Trendgrafikonok
+│   ├── station_diagram.py     # 2D állomás-diagram
+│   ├── ts_diagram.py          # T-s diagram
+│   └── model_3d.py            # 3D forgástest
+├── data/
+│   ├── lookup.pkl             # 63 EngineResults az apphoz
+│   ├── design_point.pkl       # Tervezési pont
+│   └── results.csv            # Ugyanezek táblázatban
+├── notebooks/                 # 01–04: tervezési pont, off-design, vizualizáció, gázkar
+├── scripts/                   # Parancssoros futtatás, felkészítő .docx generálása
+├── tests/                     # 97 pytest-teszt
+├── docs/
+│   ├── meghallgatas_felkeszules.md
+│   └── superpowers/           # Tervek és specifikációk
+├── CFM56_szakdolgozat.docx    # A dolgozat
+├── meghallgatas_felkeszules.docx
+├── DOKUMENTACIO.md            # Ez a fájl
+├── README.md
+└── requirements.txt
 ```
 
 ---
 
-## 4. CFM56-5B műszaki adatok
+## 4. Modellbemenetek és CFM56-5B adatok
 
-### Főbb paraméterek
-| Paraméter | Érték | Forrás |
+### 4.1 Tervezési bemenetek
+
+Ezek a modell bemenetei, ezért egyezésük az irodalommal **nem validálás**.
+
+| Paraméter | Érték | Eredet |
 |-----------|-------|--------|
-| Bypass Ratio (BPR) | 5.5 | [ICAO Engine Emissions Databank (EASA)](https://www.easa.europa.eu/en/domains/environment/icao-aircraft-engine-emissions-databank) |
-| Overall Pressure Ratio (OPR) | 27.0 | [Aircraft Commerce — CFM56-5A/5B Specs (PDF)](https://www.aircraft-commerce.com/wp-content/uploads/aircraft-commerce-docs1/Aircraft%20guides/CFM56-5A-5B/ISSUE%2050-CFM56-5A-5B%20SPECS.pdf) |
-| Turbine Inlet Temperature (T4) | ~1700 K | [ScienceDirect — Energy & exergy assessment of CFM56-3](https://www.sciencedirect.com/article/pii/S0360544223001597) |
-| Maximális tolóerő | 133.4 kN | [ICAO Engine Emissions Databank (EASA)](https://www.easa.europa.eu/en/domains/environment/icao-aircraft-engine-emissions-databank) |
-| Tömegáram (felszállás) | ~370 kg/s | [Wikipedia — CFM International CFM56](https://en.wikipedia.org/wiki/CFM_International_CFM56) |
-| Fajlagos tüzelőanyag-fogyasztás (SFC) | 0.01098 kg/(kN·s) | [ScienceDirect — Energy & exergy assessment of CFM56-3](https://www.sciencedirect.com/article/pii/S0360544223001597) |
-| Kipufogógáz hőmérséklet (EGT limit) | 940–950°C | [Aircraft Commerce — CFM56-5A/5B Specs (PDF)](https://www.aircraft-commerce.com/wp-content/uploads/aircraft-commerce-docs1/Aircraft%20guides/CFM56-5A-5B/ISSUE%2050-CFM56-5A-5B%20SPECS.pdf) |
+| BPR | 5,5 | Nyilvános összesítő adat |
+| Tömegáram | 370 kg/s | Nyilvános tartomány: 368–439 kg/s |
+| OPR | 27 (számítva 26,96) | Saját felvétel |
+| Fan / LPC / HPC PR | 1,685 / 2,0 / 8,0 | Saját felvétel, a szorzatuk adja az OPR-t |
+| T4 | 1700 K | Saját becslés, a gyártói érték nem publikus |
+| Hatásfok: fan / LPC / HPC / HPT / LPT | 0,89 / 0,89 / 0,87 / 0,89 / 0,90 | Tipikus szakirodalmi értékek |
+| Égőtéri nyomásveszteség | 3 % | Tipikus érték |
+| Fúvócső Cv: mag / bypass | 0,9999 / 0,9975 | Modellbemenet |
 
-### Motorállomások (ATA 72 station numbering)
-| Állomás | Elnevezés |
-|---------|-----------|
-| 0 | Szabad levegő (ambient) |
-| 1 | Motor előtt (inlet) |
-| 2 | Fan belépő |
-| 13 | Fan kilépő (bypass) |
-| 21 | LPC belépő |
-| 25 | LPC kilépő / HPC belépő |
-| 3 | HPC kilépő / égőtér belépő |
-| 4 | Égőtér kilépő / HPT belépő |
-| 45 | HPT kilépő / LPT belépő |
-| 5 | LPT kilépő |
-| 8 | Fúvócső kilépő (core nozzle) |
-| 18 | Bypass fúvócső kilépő |
+### 4.2 Hivatkozási adatok
+
+| Adat | Érték | Forrás |
+|------|-------|--------|
+| Felszállási tolóerő (-5B1), statikus | 133,45 kN | EASA TCDS E.003 |
+| Tolóerő-tartomány | 96,1–142,3 kN | EASA TCDS E.003 |
+| EGT-határ, felszállás / indítás | 950 °C / 725 °C | EASA TCDS E.003 |
+| Legnagyobb N1 / N2 | 5200 1/min (104 %) / 15 183 1/min (105 %) | EASA TCDS E.003 |
+| Statikus SFC | 9,25–10,02 g/(kN·s) | Wikipedia, elsődleges forrással kiváltandó |
+| Utazó SFC (-5B4) | 15,4 g/(kN·s) | Wikipedia, elsődleges forrással kiváltandó |
+
+### 4.3 Állomások
+
+| Kód | Elnevezés |
+|-----|-----------|
+| S0 | Szabad levegő |
+| S2 | Levegőbevezető kimenet |
+| S21 | Ventilátor kimenet |
+| S25 | LPC kimenet |
+| S3 | HPC kimenet |
+| S4 | Égéstér kimenet |
+| S45 | HPT kimenet |
+| S5 | LPT kimenet (a modell EGT-je) |
+| S8 | Mag-fúvócső |
+| S18 | Bypass-fúvócső |
 
 ---
 
@@ -120,7 +147,7 @@ Engine/Engine/
 ### Tudományos irodalom
 - [ScienceDirect — Energy, exergy, economic, environmental assessment of CFM56-3](https://www.sciencedirect.com/science/article/pii/S0360544223001597)
 - [ResearchGate — EGT és üzemi paraméterek kapcsolata CFM56-7B-ben](https://www.researchgate.net/publication/270668783_Evaluation_of_the_relationship_between_exhaust_gas_temperature_and_operational_parameters_in_CFM56-7B_engines)
-- [Academia.edu — CFM56-3 hajtőmű leírás](https://www.academia.edu/31930244/CFM56_3_Turbofan_Engine_Description)
+- [Academia.edu — CFM56-3 hajtómű leírás](https://www.academia.edu/31930244/CFM56_3_Turbofan_Engine_Description)
 - [Academia.edu — CFM56-5B PIP teljesítményjavítás](https://www.academia.edu/9976103/CFM56_5B_PIP)
 - [Wikipedia — CFM International CFM56](https://en.wikipedia.org/wiki/CFM_International_CFM56)
 
@@ -133,237 +160,241 @@ Engine/Engine/
 - [NASA nyílt forráskódú szoftverek](https://code.nasa.gov/?tag=modeling)
 
 ### Referenciaanyagok
-- [Smithsonian — CFM56-2 hajtőmű gyűjtemény](https://airandspace.si.edu/collection-objects/cfm-international-cfm56-2-turbofan-engine/nasm_A19900042000)
+- [Smithsonian — CFM56-2 hajtómű gyűjtemény](https://airandspace.si.edu/collection-objects/cfm-international-cfm56-2-turbofan-engine/nasm_A19900042000)
 - [MIT Thermodynamics — Brayton ciklus](https://web.mit.edu/16.unified/www/FALL/thermodynamics/mud/T7mud03.html)
 
----
-
-## 6. Megvalósítási lépések
-
-### 1. fázis — Környezet telepítése
-- [ ] Python 3.10+ telepítése
-- [ ] Virtuális környezet létrehozása: `python -m venv venv`
-- [ ] Függőségek telepítése: `pip install om-pycycle matplotlib plotly numpy jupyter`
-- [ ] Telepítés ellenőrzése: `python -c "import pycycle; print('OK')"`
-
-### 2. fázis — CFM56 modell felépítése
-- [x] `engine/cfm56.py` — paraméterek és pyCycle modell definíció
-- [x] `engine/simulation.py` — `run_design_point()` és `run_off_design()` wrapper függvények
-- [x] `engine/results.py` — `EngineResults` osztály az adatok strukturált tárolásához
-
-### 3. fázis — Vizualizáció
-- [x] `visualization/station_diagram.py` — 2D állomás-diagram T és P értékekkel
-- [x] `visualization/ts_diagram.py` — T-s Brayton-ciklus diagram
-- [x] `visualization/model_3d.py` — 3D forgástest modell Plotly-val
-
-### 4. fázis — Jupyter Notebookok
-- [x] `notebooks/01_design_point.ipynb` — Design point analízis
-- [x] `notebooks/02_off_design.ipynb` — Off-design analízis (3 repülési fázis)
-- [x] `notebooks/03_visualization.ipynb` — 2D/3D vizualizáció
-
-### 5. fázis — Validáció
-- [x] Szimulált értékek összehasonlítása irodalmi adatokkal
-- [x] OPR, EGT, SFC ellenőrzése a specifikációkkal szemben
+A dolgozat hivatkozási listája a `generate_thesis.py` végén található. Az ellenőrzési teendőket a felkészítő 2. fejezete tartalmazza.
 
 ---
 
-## 7. Üzemi pontok
+## 6. Ciklusmodell
 
-| Fázis | Magasság | Mach | Megjegyzés |
-|-------|----------|------|------------|
-| Felszállás (design point) | 0 ft (SL) | 0.25 | Maximális tolóerő |
-| Emelkedés | 10 000 ft | 0.50 | Climb thrust |
-| Cruise | 35 000 ft | 0.82 | Névleges cruise |
+### 6.1 Tervezési pont
 
----
+Tengerszinti statikus felszállás (Mach ≈ 0, a modellben 0,001 a szingularitás elkerülésére).
+A ciklust három implicit egyensúly zárja:
 
-## 8. Szimulációs eredmények (validáció)
+| Ismeretlen | Feltétel |
+|------------|----------|
+| FAR | Égéstér-kilépő hőmérséklet = T4 |
+| HPT PR | HP tengely nettó teljesítménye = 0 |
+| LPT PR | LP tengely nettó teljesítménye = 0 |
 
-**Dátum:** 2026-05-19 | **pyCycle verzió:** 4.4.0 | **OpenMDAO verzió:** 3.43.0
+### 6.2 Off-design
 
-### 8.1 Tesztek
+A `CFM56MultiPoint` a tervezési pontból rögzíti a fúvócső-keresztmetszeteket és a jelleggörbe-skálázást. Ismeretlenek:
 
-| Teszt modul | Tesztek száma | Eredmény |
-|-------------|---------------|---------|
-| `tests/test_cfm56.py` | 4 | ✅ PASS |
-| `tests/test_results.py` | 4 | ✅ PASS |
-| `tests/test_simulation.py` | 6 | ✅ PASS |
-| `tests/test_visualization.py` | 3 | ✅ PASS |
-| **Összesen** | **17** | **✅ 17/17 PASS** |
+| Ismeretlen | Feltétel |
+|------------|----------|
+| FAR | T4 = gázkar szerinti célérték |
+| W (tömegáram) | Mag-fúvócső terület = tervezési |
+| BPR | Bypass-fúvócső terület = tervezési |
+| N1, N2 | Tengely-egyensúly |
 
-### 8.2 Design point eredmények — Felszállás (SL, Mach 0.25)
+A tömegáram, BPR, OPR, N1 és N2 tehát eredmény. Az `OffDesignSolver` kis lépésekben halad (legfeljebb 2500 ft, 0,05 Mach, 50 K), és minden pontot ellenőriz: T4-cél, tengelymérleg, mag-fúvócső nyomása.
 
-| Paraméter | Szimulált | Irodalmi | Eltérés |
-|-----------|-----------|----------|---------|
-| Overall Pressure Ratio (OPR) | 26.96 | 27.0 | 0.1% ✅ |
-| Bypass Ratio (BPR) | 5.50 | 5.5 | 0.0% ✅ |
-| Égőtér kilépő hőmérséklet (T4) | 1727.6 K | ~1700 K | 1.6% ✅ |
-| Maximális tolóerő | 113.8 kN | 133.4 kN | 14.7% ⚠️ |
+**Érvényesség:** egy pont érvénytelen, ha az R-line kilép a jelleggörbéből (fan 1,0–2,6; LPC és HPC 1,0–3,0), vagy N1 > 104 %, N2 > 105 %. Az érvénytelen pontok megmaradnak, de jelölve vannak, és az app figyelmeztet rájuk.
 
-### 8.3 Állomás hőmérsékletek és nyomások (felszállás)
+**VBV:** T4 ≥ 1650 K felett zárt, 1000 K-ig lineárisan 30 %-ra nyit. Ez a korrigált N2 szerinti FADEC-vezérlés egyszerűsítése.
 
-| Állomás | Elnevezés | T [K] | P [kPa] |
-|---------|-----------|-------|---------|
-| S2 (inlet) | Motor belépő | 291.8 | 105.8 |
-| S21 (fan exit) | Fan kimenet | 344.4 | 178.3 |
-| S25 (LPC exit) | LPC kimenet | 428.5 | 356.6 |
-| S3 (HPC exit) | HPC kimenet | 804.9 | 2853.1 |
-| S4 (burner exit) | Égőtér kimenet | 1727.6 | 2767.5 |
-| S45 (HPT exit) | HPT kimenet | 1319.8 | 691.9 |
-| S5 (LPT exit) | LPT kimenet | 989.8 | 173.0 |
+**Gázkar:** T4 = 1000 + 7 · gázkar% [K], 5 %-os lépésekben. A 0 % **nem földi alapjárat**, hanem kis részterhelés.
 
-### 8.4 A tolóerő eltérésének magyarázata (szakdolgozathoz)
+### 6.3 Repülési fázisok
 
-A szimulált 113.8 kN és az irodalmi 133.4 kN közötti **14.7%-os eltérés** az 1D termodinamikai ciklus-modell ismert korlátaiból ered. Az alábbi fizikai jelenségek nincsenek modellezve:
-
-1. **Beépítési veszteségek** — A hajtőmű és a repülőgép sárkánya közötti interferencia, inlet totálnyomás-veszteség (tipikusan 1–3%).
-2. **Hűtőlevegő-áramlás** — A forró turbinafokozatok hűtéséhez elvett levegő (a kompresszor tömegáramának kb. 15–20%-a) visszaüt a teljesítménymérlegre.
-3. **Mechanikai veszteségek** — Csapágy-súrlódás, tömítési veszteségek.
-4. **Fúvócső-jellemzők** — Pontosabb kisülési együtthatók (Cd) és divergencia-veszteségek.
-5. **Modell egyszerűsítés** — A turbinafokozatok nyomásarányát (HPT PR = 4.0, LPT PR = 4.0) rögzített értékként kezeljük Newton-iteráció nélkül.
-
-**Irodalmi alátámasztás:** 1D Brayton-ciklus modellek esetén 10–20%-os eltérés a gyártói tolóerő-adatoktól tipikus és elfogadott, különösen hűtőlevegő-modellezés nélkül.
-
-**Hivatkozás a szakdolgozatban:** Walsh, P.P. & Fletcher, P. (2004). *Gas Turbine Performance*. Blackwell Science. (5–10% eltérés tipikus 1D ciklus-modelleknél)
+| Fázis | Magasság | Mach |
+|-------|----------|------|
+| Tervezési pont | 0 ft | ≈ 0 |
+| Felszállás | 0 ft | 0,25 |
+| Emelkedés | 15 000 ft | 0,50 |
+| Utazás | 35 000 ft | 0,78 |
 
 ---
 
-## 9. Gázkar Szimulátor és ECAM Panel (04_throttle.ipynb)
+## 7. Eredmények
 
-### 9.1 Áttekintés
+### 7.1 Tervezési pont
 
-A `notebooks/04_throttle.ipynb` notebook interaktív gázkar-szimulátort és A320-stílusú ECAM motorkijelzőt valósít meg.
+| Paraméter | Érték |
+|-----------|-------|
+| Nettó tolóerő | 138,3 kN |
+| Bruttó tolóerő | 138,4 kN (bypass 96,1 + mag 42,3) |
+| SFC | 10,84 g/(kN·s) |
+| Tüzelőanyag | 1,50 kg/s |
+| FAR | 0,0263 |
+| HPT / LPT PR | 2,665 / 3,745 |
+| OPR / BPR | 26,96 / 5,50 |
+| EGT (S5) | 798 °C |
+| Mag-fúvócső | Fojtott, M = 1,0, Ps = 143,7 kPa |
+| Bypass-fúvócső | Nem fojtott, M = 0,90 |
 
-### 9.2 Vezérlők
+| Állomás | Tt [K] | Pt [kPa] | h [kJ/kg] |
+|---------|--------|----------|-----------|
+| S0 | 288,2 | 101,3 | −14,4 |
+| S2 | 288,2 | 101,3 | −14,4 |
+| S21 | 340,1 | 170,7 | 37,9 |
+| S25 | 423,2 | 341,5 | 122,0 |
+| S3 | 795,8 | 2731,7 | 514,8 |
+| S4 | 1700,0 | 2649,8 | 501,6 |
+| S45 | 1404,7 | 994,5 | 118,8 |
+| S5 | 1071,3 | 265,6 | −294,2 |
+| S8 | 1071,3 | 265,6 | −294,2 |
+| S18 | 340,1 | 170,7 | 37,9 |
 
-| Widget | Típus | Funkció |
-|--------|-------|---------|
-| **Flight phase** | Dropdown | Felszállás / Emelkedés / Utazórepülés választása |
-| **Throttle [%]** | Slider (0–100%) | Gázkar állása → T4 = 1000 + throttle% × 7 K |
+**Teljesítménymérleg:** HPC 22,36 MW = HPT 22,36 MW; fan 19,35 MW + LPC 4,78 MW = LPT 24,13 MW.
 
-### 9.3 ECAM panel — paraméterek és pontosság
+### 7.2 Off-design
 
-| Paraméter | Forrás | Pontosság |
-|-----------|--------|-----------|
-| **N1 [%]** | Empirikus: 20 + 0.80 × throttle% | ⚠️ Becsült |
-| **EGT [°C]** | S5_lpt_exit hőmérséklet − 273.15 | ✅ Szimulációból |
-| **N2 [%]** | Empirikus: 55 + 0.45 × throttle% | ⚠️ Becsült |
-| **FF [kg/h]** | fuel_flow × 3600, magasság-korrigált | ✅ Szimulációból |
-| **THR [kN]** | thrust_kN közvetlenül | ✅ Szimulációból |
-| **OPR** | opr közvetlenül | ✅ Szimulációból |
-| **SFC [kg/kN·s]** | fuel_flow / thrust_kN | ✅ Szimulációból |
+| Fázis | T4 [K] | ṁ [kg/s] | Fn [kN] | Ram drag [kN] | SFC [g/(kN·s)] | OPR | BPR | N1 / N2 [%] | Tüzelőanyag [kg/s] | Érvényes |
+|-------|--------|----------|---------|---------------|----------------|-----|-----|-------------|--------------------|----------|
+| Felszállás | 1700 | 381,4 | 113,7 | 32,5 | 13,44 | 26,42 | 5,55 | 100,2 / 100,3 | 1,53 | igen |
+| Emelkedés | 1700 | 264,9 | 69,0 | 42,7 | 16,10 | 29,44 | 5,37 | 101,8 / 99,0 | 1,11 | igen |
+| Utazás, teljes gáz | 1700 | 152,3 | 36,1 | 35,2 | 18,80 | 33,59 | 5,11 | 107,1 / 97,8 | 0,68 | nem |
+| Utazás, legnagyobb érvényes | 1490 | 139,4 | 25,5 | 32,3 | 17,48 | 24,74 | 5,56 | 91,7 / 91,9 | 0,45 | igen |
+| Utazás, kb. 22 kN | 1420 | 133,7 | 21,7 | 30,9 | 17,41 | 22,02 | 5,64 | 89,6 / 90,2 | 0,38 | igen |
 
-**Megjegyzés az N1/N2 becslésről:**
-A pyCycle design-point modell rotációs sebességet nem számít. Az N1/N2 értékek empirikus lineáris közelítéssel adódnak a CFM56-5B AMM (Aircraft Maintenance Manual) és Aircraft Commerce issue 58 adatai alapján:
-- N1: ~20% alapjáraton → ~100% TOGA-n
-- N2: ~55% alapjáraton → ~100% TOGA-n
+### 7.3 Gázkar felszállásnál (0 ft, Mach 0,25)
 
-### 9.4 Magasság-korrekció a tüzelőanyag-fogyasztásra
+| Gázkar [%] | T4 [K] | Fn [kN] | FF [kg/h] | SFC [g/(kN·s)] | N1 [%] | N2 [%] | OPR | BPR | EGT [°C] | VBV [%] | Érvényes |
+|------------|--------|---------|-----------|----------------|--------|--------|-----|-----|----------|---------|----------|
+| 0 | 1000 | 14,9 | 899 | 16,82 | 75,7 | 83,4 | 7,78 | 5,08 | 374 | 30 | nem |
+| 10 | 1070 | 21,2 | 1139 | 14,90 | 80,2 | 85,3 | 9,14 | 5,23 | 405 | 27 | igen |
+| 25 | 1175 | 32,9 | 1565 | 13,23 | 84,1 | 88,0 | 11,25 | 5,50 | 456 | 22 | igen |
+| 50 | 1350 | 57,3 | 2536 | 12,29 | 90,2 | 92,3 | 15,62 | 5,71 | 553 | 14 | igen |
+| 75 | 1525 | 84,8 | 3847 | 12,61 | 95,2 | 96,4 | 20,77 | 5,70 | 672 | 6 | igen |
+| 100 | 1700 | 113,7 | 5499 | 13,44 | 100,2 | 100,3 | 26,42 | 5,55 | 798 | 0 | igen |
 
-A design-point modell rögzített tömegárammal dolgozik. A magasság-korrekció az inlet állapotok alapján:
+### 7.4 Érvényességi tartomány
 
-```
-fuel_flow_corrected = fuel_flow × (P_inlet / P_design) × √(T_design / T_inlet)
-```
+A 63 pontból 50 érvényes.
 
-ahol P_design = 105.8 kPa, T_design = 291.8 K (tengerszint, Mach 0.25).
+| Fázis | Érvényes gázkar | Érvénytelen pontok | Ok |
+|-------|-----------------|--------------------|-----|
+| Felszállás | 10–100 % | 2 | Fan off map |
+| Emelkedés | 15–100 % | 3 | Fan off map |
+| Utazás | 10–70 % | 8 | Fan off map (0, 5 %); LPC off map (75–100 %); N1 > 104 % (95–100 %) |
 
-### 9.5 Gázkar-szimuláció eredményei (felszállás, T4 = 1000–1700 K)
+### 7.5 Összevetés irodalmi adatokkal
 
-| Throttle [%] | T4 [K] | N1 [%] | EGT [°C] | FF [kg/h] | THR [kN] | SFC |
-|---|---|---|---|---|---|---|
-| 0 | 1000 | 20.0 | 489 | 3240 | 109.1 | 0.00829 |
-| 25 | 1175 | 40.0 | 580 | 3816 | 110.4 | 0.00960 |
-| 50 | 1350 | 60.0 | 667 | 4392 | 111.6 | 0.01094 |
-| 75 | 1525 | 80.0 | 754 | 4968 | 112.7 | 0.01225 |
-| 100 | 1700 | 100.0 | 717 | 5544 | 113.8 | 0.01350 |
+| Paraméter | Irodalmi | Szimulált | Eltérés |
+|-----------|----------|-----------|---------|
+| Statikus tolóerő [kN] | 133,4 | 138,3 | +3,7 % |
+| Statikus SFC [g/(kN·s)] | 9,25–10,02 | 10,84 | +8…+17 % |
+| Utazó SFC [g/(kN·s)], Fn ≈ 22 kN | 15,4 | 17,41 | +13 % |
+| N1 / N2 felszállásnál [%] | ≈ 100 | 100,2 / 100,3 | – |
+
+A tolóerő többlete mellett az SFC is nagyobb, tehát a modell ciklusa kevésbé hatékony a valódinál. Legvalószínűbb ok a becsült OPR és a becsült hatásfokok. A modell kalibrálatlan.
+
+### 7.6 Ismert korlátok
+
+- Nincs turbinahűtő-levegő, beépítési és mechanikai veszteség.
+- A jelleggörbék pyCycle mintagörbék, nem CFM56-mérések.
+- A földi alapjárat a jelleggörbéken kívül esik.
+- A gázkar T4-et állít, a valódi FADEC N1-et vezérel és korlátoz.
+- A modell EGT-je az S5 (LPT kilépő), a valódi EGT mérési pontja a T49.5, ezért közvetlenül nem hasonlítható össze.
+- A T-s diagram entrópiája konstans cp-vel számolt közelítés.
 
 ---
 
-## 9.5. Hajtóműindítás és indítási hibák (tranziens modell)
+## 8. Hajtóműindítás és indítási hibák (tranziens modell)
 
-A steady-state ciklusmodell mellé egy **tranziens (időfüggő) hajtóműindítás-modell** is
-beépítésre került, amely az A320 valós indítási szekvenciáját szimulálja a FADEC
-vezérlésével. Ez tisztán Python alapú (nincs pyCycle/OpenMDAO függőség), így a
-telepített Streamlit appban élőben fut.
+Tisztán Python alapú, nincs pyCycle-függősége, ezért élőben fut az alkalmazásban.
 
-### Architektúra — három réteg
+### 8.1 Architektúra
 
 | Réteg | Fájl | Felelősség |
 |-------|------|------------|
-| **Plant (fizika)** | `engine/start_transient.py` | Redukált rendű HP-tengely tehetetlenségi ODE + empirikus EGT/üzemanyag korrelációk |
-| **FADEC + pilótafülke** | `engine/fadec.py` | ENG MODE / ENG MASTER / APU BLEED állapot → vezérlőparancsok; hibadetektálás (auto-abort nélkül) |
-| **Meghajtó** | `simulate_start()` | Időléptetés: FADEC → plant ciklus, `StartTransient` idősor előállítása |
+| Plant | `engine/start_transient.py` | HP-tengely ODE, empirikus EGT-, FF- és N1-összefüggések |
+| FADEC, pilótafülke | `engine/fadec.py` | Kezelőszervek és N2 → indítószelep, tüzelőanyag, gyújtás |
+| Meghajtó | `simulate_start()` | Időléptetés, hibadetektálás, `StartTransient` idősor |
 
-### Fizikai modell
-
-A nagynyomású tengely fordulatszámának (N2) változása tehetetlenségi egyenlettel:
+### 8.2 Fizikai modell
 
 ```
-I · dN2/dt = Q_indító(N2) + Q_turbina(N2, üzemanyag, lit) − Q_ellenállás(N2)
+I · dN2/dt = Q_indító + Q_turbina − Q_ellenállás
+
+Q_indító    = Q_0 · k_bleed · (1 − N2 / N2_kiold)    nyitott szelepnél
+Q_turbina   = k_t · f_FF(N2)                         light-off után
+Q_ellenállás = k_d · N2
+k_t         = k_d · N2_idle                          → egyensúly N2 = 60 %-nál
 ```
 
-- **Q_indító** — pneumatikus indítómotor nyomatéka (APU bleed-del skálázva), ~50% N2-nél kiold.
-- **Q_turbina** — gyújtás (light-off) után az üzemanyag-energiával arányos.
-- **Q_ellenállás** — kompresszor + súrlódási ellenállás.
-- A `turbine_gain = k_drag · idle_N2` választás biztosítja, hogy az egyensúly **pontosan az alapjárati N2-nél** (≈60%) álljon be.
+I = 10, k_d = 1, Q_0 = 40, N2_kiold = 50 %. A paraméterek normalizáltak és hangoltak, nem fizikai mértékegységűek. Integrálás: explicit Euler, Δt = 0,5 s; az időállandó 10 s.
 
-Az **EGT** empirikus korreláció: alapszint + light-off csúcs (Gauss-görbe), a start-határérték ≈725 °C.
+Az f_FF gyújtáskor 0,35, és lineárisan nő 1-ig az alapjárati N2 90 %-áig.
+EGT: alapszint a 450 °C felé, plusz Gauss-csúcs N2 = 25 % körül.
+N1 = 19 % · (N2/60)^1,5.
+Az EGT, az FF és az N1 empirikus alakfüggvény, nem fizikai számítás.
 
-### Indítási szekvencia (IGN/START)
+### 8.3 Indítási szekvencia
 
-`STARTER ON → IGNITION ON → LIGHT-OFF → STARTER CUTOUT → IDLE`
+`STARTER ON (0 s) → IGNITION ON, LIGHT-OFF (9,0 s, N2 18 %) → STARTER CUTOUT (31,5 s, N2 50 %) → IDLE (60,5 s, N2 59,4 %, N1 18,7 %)`
 
-1. ENG MODE → IGN/START, majd ENG MASTER ON + APU BLEED → indítószelep nyit, N2 emelkedik.
-   NORM állásban a hajtómű nem indul.
-2. ~18% N2-nél a FADEC üzemanyagot ad + gyújtók be → light-off.
-3. ~50% N2-nél indítómotor kiold.
-4. Felpörgés alapjáratig (~60% N2 / ~19% N1).
-5. A stabil alapjárat után az ENG MODE visszaállítható NORM-ba; a hajtómű jár tovább.
-   Indítás közben NORM-ba kapcsolás megszakítja az indítást; leállítás: ENG MASTER OFF.
+EGT-csúcs: 633 °C. A valós ~16 %-os gyújtást és ~22 %-os tüzelőanyag-nyitást a modell egyetlen 18 %-os pontba vonja össze.
 
-**CRANK** mód: csak forgatás (dry motoring), üzemanyag és gyújtás nélkül — sikertelen indítás utáni átszellőztetésre.
+| ENG MODE | Viselkedés |
+|----------|------------|
+| IGN/START | Automatikus indítás, ha ENG MASTER ON és van APU bleed |
+| NORM | Nem indít. Indítás közben megszakítja, járó hajtóműnél üzemi állás |
+| CRANK | Csak forgatás, tüzelőanyag és gyújtás nélkül |
 
-### A négy indítási hiba (gyökok → tünet → FADEC jelzés)
+### 8.4 Indítási hibák
 
-| Hiba (magyar) | Gyökok (injektált) | Tünet | FADEC jelzés |
-|---------------|--------------------|-------|--------------|
-| **Hidegfennakadás** | korlátozott üzemanyag/energia (`ff_cap=0.7`) | N2 ~45%-on megreked, EGT stabil de emelt | `HUNG START` |
-| **Melegfennakadás** | túl sok üzemanyag (`fuel_mult=1.8`) | EGT a 725 °C határ fölé (~977 °C) | `EGT EXCEEDANCE` |
-| **Nincs üzemanyagbetáplálás** | üzemanyagszelep-hiba | N2 ~22%-on forog, EGT környezeti, FF=0 | `NO LIGHT-OFF` |
-| **Nincs gyújtás** | gyújtóhiba | N2 ~22%, EGT környezeti, FF>0 (nedves indítás) | `WET START` |
+| Hiba | Injektált gyökok | Tünet | FADEC-jelzés |
+|------|------------------|-------|--------------|
+| Hidegfennakadás (HUNG) | `ff_cap = 0,7` | N2 45,5 %, N1 12,5 %, FF 420 kg/h | HUNG START, 43,5 s |
+| Melegindítás (HOT) | `fuel_mult = 1,8` | EGT-csúcs 977 °C, eléri az alapjáratot | EGT EXCEEDANCE, 10,0 s |
+| Nincs üzemanyag (NO_FUEL) | Szelephiba | N2 22,1 %, EGT 15 °C, FF = 0 | NO LIGHT-OFF, 18,5 s |
+| Nincs gyújtás (NO_IGNITION) | Gyújtóhiba | N2 22,1 %, EGT 15 °C, FF = 255 kg/h | WET START, 18,5 s |
 
-A FADEC **csak detektál** (auto-abort nélkül) — a hibát jelzi, a beavatkozás a
-személyzet feladata (MASTER OFF / CRANK az átszellőztetéshez).
+A FADEC **csak detektál**, automatikusan nem szakít meg. Detektálás: hung start 8 s N2-változás nélkül, no light-off és wet start 10 s gyújtás nélkül, EGT azonnal 725 °C felett.
 
-### Használat az appban
-
-Az app bal oldalán a kattintható ENG panel (ENG 1 kapcsoló, ENG MODE állások
-— CRANK / NORM / IGN/START közvetlenül kattinthatók —, APU BLEED) és a
-forgatókönyv-választó a négy hibához. Az E/WD valós időben animálja az indítást,
-az események és a FADEC-hibák alatta jelennek meg. A körfolyamat-elemzés
-(repülési fázis, gázkar, állomás- és T-s diagram, 3D modell) az oldal alján
-minden állapotban elérhető.
+Kézi ellenőrzés: 40·(1 − N2/50) = N2 → 22,2 %; 40·(1 − N2/50) + 42 = N2 → 45,6 %.
 
 ---
 
-## 10. Git commit történet
+## 9. Pilótafülke-alkalmazás
 
-| Commit | Leírás |
-|--------|--------|
-| `c5a32f8` | fix: correct fuel_flow for altitude in T4_override mode |
-| `732b38d` | feat: add flight phase dropdown next to throttle slider |
-| `8e2b034` | revert: restore original 3D model without exhaust plume |
-| `33a7bd9` | feat: add thesis Word document and generation script |
-| `c722623` | feat: throttle notebook shows all 3 diagrams |
-| `d7f0469` | feat: add throttle/gas lever notebook with ipywidgets slider |
-| `17a023f` | chore: remove OpenMDAO report directories from tracking |
-| `1fbbbd3` | chore: add .gitignore and remove cache files |
-| `bd194b2` | chore: final validation and cleanup |
-| `36bad25` | feat: add command-line scripts for design point and off-design analysis |
-| `d137d15` | feat: add Jupyter notebooks for design point, off-design, and visualization |
-| `6cbfb28` | feat: add 2D station diagram, T-s diagram, and 3D engine model |
-| `52cb39f` | feat: add simulation wrapper with run_design_point and run_off_design |
-| `4a6a101` | feat: add CFM56-5B parameters and pyCycle model builders |
-| `d83cb21` | feat: add EngineResults and StationData dataclasses |
-| `5a370b1` | feat: project structure and dependencies |
+Indítás: `.venv/bin/python -m streamlit run app.py`
+
+Az app a `data/lookup.pkl`-ből olvas, tehát futás közben nem old meg ciklust. A pyCycle a `precompute.py` futtatásához kell.
+
+**Nyilvános elérés:** az app Streamlit Community Cloudon fut, a GitHub-repó webhookja (`share.streamlit.io/hook`) pushkor értesíti a szolgáltatást. A pontos link a share.streamlit.io felületén látható. Az ingyenes appok használat nélkül elalszanak, ezért bemutató előtt érdemes megnyitni.
+
+**Állapotok:** OFF → STARTING → RUNNING, sikertelen indításnál FAULT.
+
+| Elem | Működés |
+|------|---------|
+| ENG panel | Kattintható kép: ENG 1, MODE (CRANK / NORM / IGN/START), APU BLEED |
+| Scenario | NORMAL, HUNG, HOT, NO_FUEL, NO_IGNITION. Járó hajtóműnél váltva újraindít |
+| Speed | 1, 5 vagy 10-szeres szimulációs idő |
+| E/WD | N1, EGT, N2, FF. RUNNING állapotban EPR, OPR, SFC, tolóerő is |
+| Engine trends | N1/N2, EGT, FF az idő függvényében |
+| Cycle analysis | Repülési fázis, gázkar, paraméterek, állomástábla, állomás- és T-s diagram, 3D modell |
+
+**Az indítás és a ciklusmodell kapcsolata:** az indítás N1 ≈ 19 %-on ér véget, a legalacsonyabb ciklusmodell-pont N1 ≈ 76 %. RUNNING állapotban az E/WD elsőrendű késleltetéssel (τ = 4 s szimulációs idő) a kiválasztott gázkarpont felé mozog, ezért IDLE után 0 % gázkarnál is felfut kb. 76 % N1-re. Ez szemléltető átmenet, nem fizikai számítás.
+
+---
+
+## 10. Tesztek
+
+`.venv/bin/python -m pytest -q -W ignore` — 97 teszt, kb. 2,5 perc. Utoljára futtatva 2026-11-01-én: 97 sikeres.
+
+| Terület | Modulok | Tesztek |
+|---------|---------|---------|
+| Ciklusmodell | `test_cfm56`, `test_cycle_balance`, `test_simulation`, `test_results` | 23 |
+| Indítás és FADEC | `test_start_plant`, `test_start_faults`, `test_fadec`, `test_simulate_start`, `test_start_anchor`, `test_start_results` | 35 |
+| App-logika | `test_cockpit_logic`, `test_playback`, `test_trend` | 19 |
+| Megjelenítés | `test_airbus_panel`, `test_ecam`, `test_ewd`, `test_start_plot`, `test_visualization` | 20 |
+
+---
+
+## 11. Karbantartás
+
+Ha a modell vagy az adat változik, ezeket együtt kell frissíteni:
+
+1. `precompute.py` futtatása, ez frissíti a `data/` mappát.
+2. Ez a fájl, 7. fejezet.
+3. `docs/meghallgatas_felkeszules.md`, majd `scripts/build_hearing_docx.py`.
+4. `generate_thesis.py`, ha a dolgozat számai is érintettek.
+
+A commit-történet a `git log` paranccsal érhető el.

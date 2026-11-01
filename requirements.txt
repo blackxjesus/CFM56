@@ -1,8 +1,10 @@
 om-pycycle==4.4.0
-openmdao>=3.39
-streamlit>=1.50
-matplotlib
-plotly
-numpy
-pillow
-streamlit-image-coordinates
+openmdao==3.45.2
+# pyCycle 4.4.0 fails on NumPy >= 2.3 ("setting an array element with a sequence")
+numpy==2.2.6
+# app.py uses width='stretch', which needs streamlit >= 1.50
+streamlit==1.66.1
+matplotlib==3.11.2
+plotly==7.1.0
+pillow==13.0.0
+streamlit-image-coordinates==0.4.1
