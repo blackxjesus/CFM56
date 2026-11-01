@@ -19,7 +19,7 @@ A projekt a CFM56-5B kétáramú turbofan hajtómű Python alapú szimulációja
 
 ## 2. Szoftverek és eszközök
 
-A pontos verziók a `requirements.txt` fájlban rögzítettek.
+Két függőségfájl van. A `requirements-sim.txt` a teljes, rögzített környezet (szimuláció, tesztek, app). A `requirements.txt` csak az app csomagjait tartalmazza, ezt telepíti a Streamlit Cloud, mert az app nem használ pyCycle-t.
 
 | Eszköz | Verzió | Szerep |
 |--------|--------|--------|
@@ -36,12 +36,12 @@ Fejlesztéshez külön: `pytest` (tesztek), `python-docx` (dokumentum-generálá
 
 ```bash
 python3.12 -m venv .venv
-.venv/bin/pip install -r requirements.txt
+.venv/bin/pip install -r requirements-sim.txt
 .venv/bin/pip install pytest python-docx
 .venv/bin/python -m streamlit run app.py
 ```
 
-Ismert korlát: a Streamlit jelzi, hogy a `st.components.v1.html` kivezetésre kerül (`st.iframe` a helyettesítője). Az 1.66.1 verzióval még működik, ezért rögzített a verzió.
+Ismert korlát: a Streamlit jelzi, hogy a `st.components.v1.html` kivezetésre kerül (`st.iframe` a helyettesítője). Az 1.66.1 verzióval még működik, ezért ez a felső határ mindkét fájlban.
 
 ---
 
@@ -82,7 +82,8 @@ Engine/Engine/
 ├── meghallgatas_felkeszules.docx
 ├── DOKUMENTACIO.md            # Ez a fájl
 ├── README.md
-└── requirements.txt
+├── requirements.txt          # Csak az app (Streamlit Cloud)
+└── requirements-sim.txt      # Teljes rögzített környezet
 ```
 
 ---
@@ -358,7 +359,7 @@ Indítás: `.venv/bin/python -m streamlit run app.py`
 
 Az app a `data/lookup.pkl`-ből olvas, tehát futás közben nem old meg ciklust. A pyCycle a `precompute.py` futtatásához kell.
 
-**Nyilvános elérés:** az app Streamlit Community Cloudon fut, a GitHub-repó webhookja (`share.streamlit.io/hook`) pushkor értesíti a szolgáltatást. A pontos link a share.streamlit.io felületén látható. Az ingyenes appok használat nélkül elalszanak, ezért bemutató előtt érdemes megnyitni.
+**Nyilvános elérés:** https://cfm56ziad.streamlit.app — az app Streamlit Community Cloudon fut, a GitHub-repó webhookja (`share.streamlit.io/hook`) pushkor értesíti a szolgáltatást. Az ingyenes appok használat nélkül elalszanak, ezért bemutató előtt érdemes megnyitni.
 
 **Állapotok:** OFF → STARTING → RUNNING, sikertelen indításnál FAULT.
 

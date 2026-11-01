@@ -4,16 +4,18 @@ BSc szakdolgozat — Nyíregyházi Egyetem
 
 **Cím:** CFM56-5B repülőgéphajtómű termodinamikai ciklus-analízise Python alapú szimulációval
 
+**Élő alkalmazás:** https://cfm56ziad.streamlit.app
+
 A részletes projektdokumentáció a [DOKUMENTACIO.md](DOKUMENTACIO.md), a meghallgatási
 felkészítő a [docs/meghallgatas_felkeszules.md](docs/meghallgatas_felkeszules.md) fájlban van.
 
 ## Telepítés
 
-Python 3.12 ajánlott. A verziók rögzítettek, mert a pyCycle 4.4.0 nem fut NumPy 2.3+ alatt.
+Python 3.12 ajánlott. A `requirements-sim.txt` a teljes környezet: a verziói rögzítettek, mert a pyCycle 4.4.0 nem fut NumPy 2.3+ alatt. A `requirements.txt` csak az apphoz kell, ezt telepíti a Streamlit Cloud.
 
 ```bash
 python3.12 -m venv .venv
-.venv/bin/pip install -r requirements.txt
+.venv/bin/pip install -r requirements-sim.txt
 .venv/bin/pip install pytest python-docx   # tesztek és dokumentum-generálás
 ```
 
