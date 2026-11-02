@@ -122,7 +122,26 @@ with col_panel:
                  ['NORMAL', 'HUNG', 'HOT', 'NO_FUEL', 'NO_IGNITION'],
                  key='scenario',
                  help='Pick a start fault, then start the engine. Changing it '
-                      'while the engine is running restarts the start with that fault.')
+                      'while the engine is running restarts the start with that fault.\n\n'
+                      '**NORMAL** – no fault. Light-off at ~18 % N2, starter cuts out '
+                      'at ~50 % N2, stabilises at idle (~60 % N2) in about 60 s. '
+                      'EGT peaks ~630 °C, below the 725 °C redline.\n\n'
+                      '**HUNG** – fuel flow is limited to 70 % of schedule. The engine '
+                      'lights normally, but as the starter assistance fades the spool stops '
+                      'accelerating and hangs at ~45 % N2, before starter cutout '
+                      'and below idle. '
+                      'Flag: HUNG START.\n\n'
+                      '**HOT** – too much fuel (×1.8) during light-off. EGT shoots past '
+                      'the 725 °C redline (~980 °C) just after light-off; the engine '
+                      'still reaches idle. Flag: EGT EXCEEDANCE.\n\n'
+                      '**NO_FUEL** – the fuel valve stays shut. The starter spins the '
+                      'core to ~22 % N2, but with no fuel there is no light-off: '
+                      'FF = 0, EGT stays at ambient. Flag: NO LIGHT-OFF.\n\n'
+                      '**NO_IGNITION** – igniters fail. Fuel flows into the combustor but '
+                      'never lights: FF > 0, EGT stays at ambient, N2 stays at ~22 %. '
+                      'Flag: WET START.\n\n'
+                      'Faults are flagged, not acted on: the FADEC model detects them '
+                      'but does not abort the start automatically.')
     ss.speed = st.select_slider('SPEED', options=[1, 5, 10], value=ss.speed)
 
 mode, master, bleed = ss.mode, ss.master, ss.bleed
