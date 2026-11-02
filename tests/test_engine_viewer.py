@@ -61,3 +61,10 @@ def test_component_files_present():
     html = open(os.path.join(_DIR, 'index.html'), encoding='utf-8').read()
     for _, label, _ in STATIONS:      # every station has a marker position
         assert f"'{label}':" in html
+
+
+def test_running_at_idle_follows_idle_not_cycle_point():
+    s = engine_view_state('RUNNING', _result(), 75.7,
+                          idle=dict(N1=18.7, N2=59.4, EGT=446.0, FF=600.0))
+    assert s['n1'] == 18.7 and s['hot_label'] == 'EGT' and s['hot_K'] == 719.1
+    assert s['reference'] is True

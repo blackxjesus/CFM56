@@ -30,6 +30,15 @@ class TrendHistory:
         return {k: getattr(self, k)[-1] for k in SIGNALS}
 
 
+def idle_point(sd):
+    """Ground idle = where the start transient ends (N1 ~19 %, N2 ~59 %).
+
+    The cycle model has no solution below ~76 % N1, so throttle 0 % holds the
+    engine here instead of easing to the lowest (invalid) cycle point.
+    """
+    return {k: float(getattr(sd, k)[-1]) for k in SIGNALS}
+
+
 def history_from_start(sd):
     """Seed a trend history with a (completed) start transient."""
     return TrendHistory(t=list(sd.t), N1=list(sd.N1), N2=list(sd.N2),

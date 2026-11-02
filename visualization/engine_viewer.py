@@ -51,12 +51,14 @@ def _stations(result):
 
 
 def engine_view_state(eng_state, result, n1, start_data=None, frame=0.0,
-                      speed=1, sim_dt=0.5):
+                      speed=1, sim_dt=0.5, idle=None):
     """Plain dict sent to the 3D view. Pure function, no Streamlit.
 
     eng_state: 'OFF' | 'STARTING' | 'RUNNING' | 'FAULT'
     result:    EngineResults of the selected operating point (cycle analysis)
     n1:        N1 [%] of that operating point
+    idle:      {N1, EGT, ...} when RUNNING at throttle 0 % (ground idle); the
+               rotor and glow follow idle, the stations stay a reference
     """
     t4 = result.stations.get('S4_burner_exit')
     state = dict(
@@ -65,7 +67,10 @@ def engine_view_state(eng_state, result, n1, start_data=None, frame=0.0,
         reference=eng_state != 'RUNNING',
         n1=0.0, hot_K=0.0, hot_label='',
     )
-    if eng_state == 'RUNNING':
+    if eng_state == 'RUNNING' and idle is not None:
+        state.update(n1=round(float(idle['N1']), 2), reference=True,
+                     hot_K=round(float(idle['EGT']) + 273.15, 1), hot_label='EGT')
+    elif eng_state == 'RUNNING':
         state.update(n1=round(float(n1), 2),
                      hot_K=round(t4.T, 1) if t4 else 0.0, hot_label='T4')
     elif eng_state in ('STARTING', 'FAULT') and start_data is not None:

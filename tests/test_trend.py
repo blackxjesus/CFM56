@@ -35,3 +35,14 @@ def test_window_trims_old_samples_and_events():
         step_trend(h, TARGET, 1.0, window=10.0)
     assert h.t[0] >= 10.0 and len(h.t) == len(h.N2)
     assert h.events == []
+
+
+def test_idle_point_is_end_of_start():
+    from engine.trend import idle_point
+    from engine import simulate_start, StartScenario, CockpitConfig, EngMode
+    sd = simulate_start(StartScenario.NORMAL,
+                        CockpitConfig(mode=EngMode.IGN_START, master_on=True, bleed_available=True))
+    idle = idle_point(sd)
+    assert set(idle) == {'N1', 'N2', 'EGT', 'FF'}
+    assert idle['N1'] == sd.N1[-1] and idle['N2'] == sd.N2[-1]
+    assert 15 < idle['N1'] < 25 and 55 < idle['N2'] < 62   # ground idle, not ~76 % N1

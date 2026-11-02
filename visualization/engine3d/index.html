@@ -217,7 +217,9 @@ function readout(n1, hotK) {
     r.innerHTML = `${m === 'fault' ? '<span class="warn">START FAULT</span> · ' : 'STARTING · '}` +
       `N1 <b>${n1.toFixed(1)} %</b> · EGT <b class="${egt > 725 ? 'warn' : ''}">${egt.toFixed(0)} °C</b>`;
   } else {
-    r.innerHTML = `N1 <b>${n1.toFixed(1)} %</b> · T4 <b>${hotK.toFixed(0)} K</b>`;
+    r.innerHTML = S.hot_label === 'EGT'
+      ? `IDLE · N1 <b>${n1.toFixed(1)} %</b> · EGT <b>${(hotK - 273.15).toFixed(0)} °C</b>`
+      : `N1 <b>${n1.toFixed(1)} %</b> · T4 <b>${hotK.toFixed(0)} K</b>`;
   }
   note.textContent = S.reference
     ? 'Station values: selected operating point (reference)'

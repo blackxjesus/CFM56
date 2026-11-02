@@ -3,7 +3,7 @@
 **Szakdolgozat:** CFM56-5B repülőgéphajtómű termodinamikai ciklus-analízise Python alapú szimulációval
 **Intézmény:** Nyíregyházi Egyetem, Műszaki és Agrártudományi Intézet
 **Hajtómű:** CFM International CFM56-5B (vizsgált változat: -5B1)
-**Dokumentáció állapota:** 2026-11-02. A számok forrása a `data/results.csv` és a `data/design_point.pkl`.
+**Dokumentáció állapota:** 2026-11-03. A számok forrása a `data/results.csv` és a `data/design_point.pkl`.
 
 ---
 
@@ -78,7 +78,7 @@ Engine/Engine/
 │   └── results.csv            # Ugyanezek táblázatban
 ├── notebooks/                 # 01–04: tervezési pont, off-design, vizualizáció, gázkar
 ├── scripts/                   # Parancssoros futtatás, felkészítő .docx generálása
-├── tests/                     # 107 pytest-teszt
+├── tests/                     # 109 pytest-teszt
 ├── docs/
 │   ├── meghallgatas_felkeszules.md
 │   ├── hajtomu_konyhanyelven.docx   # Közérthető hajtómű-leírás (Claude-jegyzetből exportálva)
@@ -383,20 +383,20 @@ Az app a `data/lookup.pkl`-ből olvas, tehát futás közben nem old meg ciklust
 | Cycle analysis | Repülési fázis, gázkar, paraméterek, állomástábla, állomás- és T-s diagram, 3D modell |
 | 3D modell | Valódi CFM56-5B glTF-modell, forgatható, nagyítható. A burkolat tömör, áttetsző vagy rejtett. Kapcsolat a szimulációval: (1) állomásjelölők (2, 21, 18, 25, 3, 4, 45, 5, 8) a kiválasztott munkapont T, P, h értékével, T szerint színezve (300–1800 K), a jobb felső sarokban jelmagyarázat: szín, állomásszám, hajtóműrész, T; a hajtóműrészek neve a tengely alatt (Fan, Booster (LPC), HPC, Combustor, HPT, LPT, Exhaust nozzle, Bypass duct), gombbal kikapcsolható; (2) az égőtér és a kiömlő rész izzása RUNNING állapotban T4, indításkor EGT szerint; (3) a rotor N1-gyel arányosan forog, lelassítva (100 % N1 = 2 ford./s a képen, a valóságban kb. 85 ford./s); (4) indításkor a böngésző a szimuláció N1/EGT-görbéjét játssza le a SPEED szerinti sebességgel, attól a ponttól, ahol az E/WD tart. OFF állapotban a rotor áll, a jelölők a kiválasztott munkapontot mutatják (referencia). A jelölők helye közelítő |
 
-**Az indítás és a ciklusmodell kapcsolata:** az indítás N1 ≈ 19 %-on ér véget, a legalacsonyabb ciklusmodell-pont N1 ≈ 76 %. RUNNING állapotban az E/WD elsőrendű késleltetéssel (τ = 4 s szimulációs idő) a kiválasztott gázkarpont felé mozog, ezért IDLE után 0 % gázkarnál is felfut kb. 76 % N1-re. Ez szemléltető átmenet, nem fizikai számítás.
+**Az indítás és a ciklusmodell kapcsolata:** az indítás N1 ≈ 19 %-on ér véget, a legalacsonyabb ciklusmodell-pont N1 ≈ 76 %. RUNNING állapotban a 0 % gázkar **IDLE**: a hajtómű az indítás végpontján marad (N1 18,7 %, N2 59,4 %, EGT 446 °C, FF 600 kg/h), az E/WD „IDLE”-t ír, a P8/P2, THR, OPR, SFC „---”, mert az alapjáratra nincs ciklusmodell-megoldás. 5 % fölött az E/WD elsőrendű késleltetéssel (τ = 4 s szimulációs idő) a kiválasztott gázkarpont felé mozog, 0 %-ra visszahúzva visszatér az alapjáratra. Az IDLE és a kb. 76 % N1 közti átmenet szemléltető, nem fizikai számítás.
 
 ---
 
 ## 10. Tesztek
 
-`.venv/bin/python -m pytest -q -W ignore` — 107 teszt, kb. 2,5 perc. Utoljára futtatva 2026-11-02-án: 107 sikeres.
+`.venv/bin/python -m pytest -q -W ignore` — 109 teszt, kb. 2,5 perc. Utoljára futtatva 2026-11-03-án: 109 sikeres.
 
 | Terület | Modulok | Tesztek |
 |---------|---------|---------|
 | Ciklusmodell | `test_cfm56`, `test_cycle_balance`, `test_simulation`, `test_results` | 23 |
 | Indítás és FADEC | `test_start_plant`, `test_start_faults`, `test_fadec`, `test_simulate_start`, `test_start_anchor`, `test_start_results` | 35 |
-| App-logika | `test_cockpit_logic`, `test_fuel`, `test_playback`, `test_trend` | 23 |
-| Megjelenítés | `test_airbus_panel`, `test_ecam`, `test_engine_viewer`, `test_ewd`, `test_start_plot`, `test_visualization` | 26 |
+| App-logika | `test_cockpit_logic`, `test_fuel`, `test_playback`, `test_trend` | 24 |
+| Megjelenítés | `test_airbus_panel`, `test_ecam`, `test_engine_viewer`, `test_ewd`, `test_start_plot`, `test_visualization` | 27 |
 
 ---
 

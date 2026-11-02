@@ -25,7 +25,7 @@ from visualization.airbus_panel import PANEL_CSS, panel_image, hit_test
 from streamlit_image_coordinates import streamlit_image_coordinates
 from engine import simulate_start, StartScenario, CockpitConfig, EngMode
 from engine.playback import step_playback, cockpit_action
-from engine.trend import history_from_start, step_trend
+from engine.trend import history_from_start, step_trend, idle_point
 from engine.fuel import burn_fuel, FOB_INITIAL_KG
 
 # ── Config ────────────────────────────────────────────────────────────────
@@ -211,11 +211,17 @@ with col_ecam:
             throttle = ss.get('throttle', 0)
             phase = ss.get('phase', FLIGHT_PHASES[0])
             result = lookup[(phase, throttle)]
-            egt_st = result.stations.get('S5_lpt_exit')
-            n1, n2 = spool_speeds(result, throttle)
-            target = dict(N1=n1, N2=n2,
-                          EGT=(egt_st.T - 273.15) if egt_st else 0.0,
-                          FF=result.fuel_flow * 3600)
+            at_idle = throttle == 0
+            if at_idle:
+                # 0 % = ground idle: hold the end of the start. The cycle model
+                # has no idle solution, so THR/OPR/SFC/P8/P2 show '---'.
+                target = idle_point(ss.start_data)
+            else:
+                egt_st = result.stations.get('S5_lpt_exit')
+                n1, n2 = spool_speeds(result, throttle)
+                target = dict(N1=n1, N2=n2,
+                              EGT=(egt_st.T - 273.15) if egt_st else 0.0,
+                              FF=result.fuel_flow * 3600)
             label = None
             if ss.get('trend_throttle') is not None and throttle != ss.trend_throttle:
                 label = f'THR {throttle}%'
@@ -224,10 +230,11 @@ with col_ecam:
             # FF = SFC x thrust of the operating point, eased like the gauges;
             # burned over SPEED x tick seconds of sim time.
             ss.fob = burn_fuel(ss.fob, cur['FF'], ss.speed * TICK_DT)
+            perf = {} if at_idle else dict(epr=compute_epr(result), opr=result.opr,
+                                           sfc=result.sfc, thr=result.thrust_kN)
             components.html(ewd_svg(cur['N1'], cur['EGT'], cur['N2'], cur['FF'],
-                                    '', _GRN, fob_kg=ss.fob,
-                                    epr=compute_epr(result), opr=result.opr,
-                                    sfc=result.sfc, thr=result.thrust_kN), height=720)
+                                    'IDLE' if at_idle else '', _GRN, fob_kg=ss.fob,
+                                    **perf), height=720)
         _run()
 
 # ── Engine trends: N1/N2, EGT, FF against time ─────────────────────────
@@ -272,8 +279,10 @@ with c1:
     phase = st.selectbox('Flight Phase', FLIGHT_PHASES, key='phase')
     throttle = st.slider('Throttle [%]', 0, 100, ss.get('throttle', 0), step=5,
                          key='throttle',
-                         help='0% = T4 1000 K (low part power, not ground idle) | '
-                              '100% = TOGA (T4 = 1700 K)')
+                         help='0% = IDLE: the running engine holds ground idle '
+                              '(end of the start, N1 ~19 %). The cycle analysis '
+                              'below still shows the lowest cycle point (T4 1000 K) '
+                              'as reference. 5–100% = T4 1035–1700 K, 100% = TOGA')
     T4 = 1000.0 + throttle * 7.0
 result = lookup[(phase, throttle)]
 n1_c, n2_c = spool_speeds(result, throttle)
@@ -315,5 +324,7 @@ with tab3:
     # Linked to the engine state: rotor follows N1, the hot section glows with
     # T4 (running) or EGT (start), markers show this operating point's T, P, h.
     # During a start the view plays the trace in the browser at SPEED.
+    idle = (idle_point(ss.start_data)
+            if ss.eng_state == 'RUNNING' and throttle == 0 and ss.start_data else None)
     engine_viewer(engine_view_state(ss.eng_state, result, n1_c, ss.start_data,
-                                    ss.frame, ss.speed, SIM_DT))
+                                    ss.frame, ss.speed, SIM_DT, idle=idle))

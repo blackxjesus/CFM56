@@ -25,7 +25,7 @@ python3.12 -m venv .venv
 
 ```bash
 .venv/bin/python -m streamlit run app.py        # pilótafülke-alkalmazás
-.venv/bin/python -m pytest -q -W ignore         # 107 teszt, kb. 2,5 perc
+.venv/bin/python -m pytest -q -W ignore         # 109 teszt, kb. 2,5 perc
 .venv/bin/python precompute.py                  # data/ újraszámítása
 .venv/bin/python scripts/run_design.py          # tervezési pont
 .venv/bin/python scripts/run_off_design.py      # off-design
