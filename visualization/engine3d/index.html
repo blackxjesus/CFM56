@@ -36,10 +36,19 @@
   .hs .full { display: none; }
   .hs.open .full { display: inline; }
   .nolabels .hs .lbl { display: none; }
+  .nolabels .key { display: none; }
   .legend { display: flex; align-items: center; gap: 6px; color: #c9ccd1; font-size: 12px;
             background: rgba(14,17,23,.75); padding: 4px 8px; border-radius: 6px; }
   .legend .ramp { width: 120px; height: 8px; border-radius: 4px; }
-  .credit { color: #9aa0a6; font-size: 12px; margin-top: 6px; }
+  .key { position: absolute; top: 52px; right: 12px; background: rgba(14,17,23,.85);
+         border: 1px solid #3a3f4b; border-radius: 6px; padding: 6px 10px; color: #e8eaed;
+         font-size: 12px; line-height: 1.6; font-variant-numeric: tabular-nums; }
+  .key .ttl { color: #9aa0a6; margin-bottom: 2px; }
+  .key .row { display: flex; align-items: center; gap: 6px; }
+  .key .dot { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid #fff; flex: none; }
+  .key .id { width: 18px; text-align: right; color: #9aa0a6; }
+  .key .t { margin-left: auto; padding-left: 10px; color: #9aa0a6; }
+  .credit { color: #9aa0a6; font-size: 12px; margin-top: 6px; } font-size: 12px; margin-top: 6px; }
   .credit a { color: #9aa0a6; }
 </style>
 </head>
@@ -58,6 +67,7 @@
     </span>
     <button class="btn on" id="lblBtn">Station labels</button>
   </div>
+  <div class="key" id="key"></div>
   <div class="bar bottom">
     <div class="legend">Station T
       <span class="ramp" id="ramp"></span><span>300</span>–<span>1800 K</span></div>
@@ -147,6 +157,10 @@ function applyShell() {
 function buildHotspots() {
   mv.querySelectorAll('.hs').forEach(e => e.remove());
   if (!S) return;
+  document.getElementById('key').innerHTML = '<div class="ttl">Stations (colour = T)</div>' +
+    S.stations.map(st => `<div class="row"><span class="dot" style="background:${tColor(st.T)}"></span>` +
+      `<span class="id">${st.id}</span><span>${st.name}</span>` +
+      `<span class="t">${st.T.toFixed(0)} K</span></div>`).join('');
   for (const st of S.stations) {
     const p = POS[st.id];
     if (!p) continue;

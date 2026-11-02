@@ -27,14 +27,14 @@ _component = components.declare_component('engine3d', path=_DIR)
 
 # (station key in EngineResults.stations, marker label, description)
 STATIONS = [
-    ('S2_inlet_exit', '2', 'Fan face'),
-    ('S21_fan_exit', '21', 'Fan exit (core)'),
+    ('S2_inlet_exit', '2', 'Fan inlet'),
+    ('S21_fan_exit', '21', 'Fan exit'),
     ('S18_byp_nozz', '18', 'Bypass nozzle'),
-    ('S25_lpc_exit', '25', 'Booster (LPC) exit'),
+    ('S25_lpc_exit', '25', 'Booster exit'),
     ('S3_hpc_exit', '3', 'HPC exit'),
-    ('S4_burner_exit', '4', 'Combustor exit (T4)'),
+    ('S4_burner_exit', '4', 'Combustor exit'),
     ('S45_hpt_exit', '45', 'HPT exit'),
-    ('S5_lpt_exit', '5', 'LPT exit (EGT)'),
+    ('S5_lpt_exit', '5', 'LPT exit'),
     ('S8_core_nozz', '8', 'Core nozzle'),
 ]
 

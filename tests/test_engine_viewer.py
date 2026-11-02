@@ -29,7 +29,7 @@ def test_off_rotor_stopped_reference_stations():
     assert s['mode'] == 'off' and s['n1'] == 0.0 and s['hot_K'] == 0.0
     assert s['reference'] is True
     assert [st['id'] for st in s['stations']] == ['2', '3', '4', '5']   # missing ones skipped
-    assert s['stations'][2] == dict(id='4', name='Combustor exit (T4)',
+    assert s['stations'][2] == dict(id='4', name='Combustor exit',
                                     T=1700.0, P=2712.0, h=1650.0)
 
 
