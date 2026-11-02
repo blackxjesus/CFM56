@@ -27,7 +27,7 @@ További tudnivalók a kiírásból:
 - Tengely-egyensúllyal zárt tervezési pont: a teljesítménymérleg kézzel is ellenőrizhető.
 - Valódi off-design rögzített geometriával: tömegáram, BPR, OPR, N1 és N2 eredmény, nem bemenet.
 - Tranziens indítási modell, FADEC-logika, 4 indítási hiba, megrekedési fordulatszámok kézi levezetése.
-- Működő app, 97 automatikus teszt, verziókezelés.
+- Működő app, 103 automatikus teszt, verziókezelés.
 
 **Ahol kérdésre számíthatsz** (részletek a 6. fejezetben):
 1. Az SFC 8–17 %-kal nagyobb a közölt értékeknél, miközben a tolóerő +3,7 %.
@@ -198,7 +198,7 @@ Fontos különbség, amit tudj kimondani: **a BPR, OPR, T4 és tervezési tömeg
 | No fuel | szelephiba | N2 22,1 %, EGT 15 °C, FF = 0 | NO LIGHT-OFF, 18,5 s |
 | No ignition | gyújtóhiba | N2 22,1 %, EGT 15 °C, FF = 255 kg/h | WET START, 18,5 s |
 
-**Ellenőrzés:** 97 pytest-teszt, kézi mérleg, megrekedési fordulatszámok levezetése.
+**Ellenőrzés:** 103 pytest-teszt, kézi mérleg, megrekedési fordulatszámok levezetése.
 
 ---
 
@@ -271,6 +271,7 @@ cd Engine/Engine
 1. **Normál indítás:** MODE IGN/START → ENG 1 ON. Mutasd a light-off-ot (9 s), a kioldást (31,5 s), az IDLE-t (60,5 s). A sebesség 1/5/10-szeres.
 2. **Figyelem:** IDLE után az E/WD magától kb. 76 % N1-re fut fel, és megjelenik az érvénytelen pont figyelmeztetése, mert a csúszka 0 %-on áll, ami nem alapjárat. **Mondd ki előre:** ez a 6.6 pont, a két modell közti szemléltető átmenet.
 3. **Gázkar:** csúszka 50–100 %, trend, majd állomás- és T-s diagram, 3D modell. Válts Cruise-ra, és húzd 75 % fölé: mutasd a figyelmeztetést (6.3).
+   **3D modell:** a burkolat áttetsző, a jelölők a csúszkával együtt változnak (T4 a 4-es állomáson), az égőtér T4 szerint izzik, a rotor N1-gyel forog. Indítás közben is nézhető: a görbét a böngésző játssza le. **Mondd ki:** a modell szemléltetés (Sketchfab, CC BY 4.0), a számok a szimulációból jönnek; a forgás lelassított, a jelölők helye közelítő.
 4. **Hot start:** ENG 1 OFF, scenario HOT, újraindítás → EGT 977 °C, EGT EXCEEDANCE. Magyarázd a gyökokot.
 5. **Hung start:** N2 45,5 %-on megreked. Vezesd le az egyensúlyt.
 6. **Kód:** `engine/start_transient.py` → `dN2_dt()`, `engine/cfm56.py` → `CFM56_PARAMS` és a balance-ok.
@@ -302,6 +303,7 @@ A dolgozat számai megegyeznek a jelenlegi modellel. Ezek a szöveges pontatlans
 | 6.1 | Az EGT nincs értékelve | S5 és T49.5 eltérése | Kiegészíteni 6.7 alapján |
 | Nyilatkozat | „2026. május” | Elavult dátum | Leadáskor frissíteni |
 | Irodalomjegyzék, [INTERNET 1] | „Letöltés: 2026. május 19.” | A repó azóta sokat változott | Leadáskor frissíteni |
+| 7. fejezet (továbbfejlesztés) | „3D forgatható hajtóműmodell” | Az app már valódi CFM56-5B glTF-modellt mutat, a szimulációhoz kötve. Idegen modell, forrásmegjelölés kötelező | Leírni a 3D nézetet, a modellt hivatkozni (CloudHubOmniTeam, Sketchfab, CC BY 4.0); a „NEO” szót kerülni |
 
 A dolgozatot a `generate_thesis.py` generálja. Ha a `.docx`-et kézzel szerkeszted, ne futtasd újra, mert felülírja.
 
@@ -333,4 +335,5 @@ A dolgozatot a `generate_thesis.py` generálja. Ha a `.docx`-et kézzel szerkesz
 - **„Ezt nem tudom.”** → „Ezt nem vizsgáltam, de úgy közelíteném meg, hogy…”, és mondj egy módszert.
 - **„Ez hibás.”** → „Igen, az oka …, és a végleges dolgozatban így javítom: …”
 - **„Honnan van ez?”** → Mondd meg őszintén, ha becsült vagy hangolt érték, és mi alapján.
+- **„A 3D modellt maga készítette?”** → Nem: Sketchfab-modell (CloudHubOmniTeam, CC BY 4.0), az app kiírja. Az enyém a szimulációhoz kötés: jelölők a T, P, h értékekkel, T4/EGT szerinti izzás, N1 szerinti forgás, az indítási görbe lejátszása.
 - **„Használt MI-t?”** → Igen, és mondd el pontosan, mire. Mutasd meg, hogy érted és ellenőrizted az eredményt: a kézi számítások (η_c, tengelymérleg, ram drag, megrekedési N2) erre valók. Olyat ne állíts, ami nem igaz.

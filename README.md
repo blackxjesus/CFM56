@@ -25,7 +25,7 @@ python3.12 -m venv .venv
 
 ```bash
 .venv/bin/python -m streamlit run app.py        # pilótafülke-alkalmazás
-.venv/bin/python -m pytest -q -W ignore         # 97 teszt, kb. 2,5 perc
+.venv/bin/python -m pytest -q -W ignore         # 103 teszt, kb. 2,5 perc
 .venv/bin/python precompute.py                  # data/ újraszámítása
 .venv/bin/python scripts/run_design.py          # tervezési pont
 .venv/bin/python scripts/run_off_design.py      # off-design
@@ -37,7 +37,7 @@ python3.12 -m venv .venv
 
 - `app.py` — Streamlit pilótafülke-alkalmazás
 - `engine/` — pyCycle ciklusmodell, off-design megoldó, indítási modell, FADEC
-- `visualization/` — E/WD, ENG panel, 2D/3D diagramok
+- `visualization/` — E/WD, ENG panel, 2D diagramok, 3D hajtómű-nézet (`engine3d/`: CFM56-5B modell, CloudHubOmniTeam, Sketchfab, CC BY 4.0)
 - `data/` — előre kiszámolt eredmények
 - `notebooks/` — Jupyter analízis
 - `scripts/` — parancssoros futtatás

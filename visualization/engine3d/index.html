@@ -1,0 +1,231 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<!-- CFM56-5B 3D view, Streamlit custom component (see visualization/engine_viewer.py).
+     Talks the Streamlit component protocol directly with postMessage. -->
+<script type="module"
+  src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+<style>
+  html, body { margin: 0; background: transparent; font-family: "Source Sans Pro", sans-serif; }
+  #wrap { position: relative; }
+  model-viewer { display: block; width: 100%; height: 540px; background: #0e1117; border-radius: 8px;
+                 --progress-bar-color: #ff4b4b;
+                 --min-hotspot-opacity: 1; }
+  .bar { position: absolute; left: 12px; right: 12px; display: flex; gap: 8px;
+         align-items: center; flex-wrap: wrap; pointer-events: none; }
+  .bar.top { top: 10px; } .bar.bottom { bottom: 10px; }
+  .bar > * { pointer-events: auto; }
+  .readout { color: #e8eaed; background: rgba(14,17,23,.75); padding: 6px 10px;
+             border-radius: 6px; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .readout b { color: #2bd92b; font-weight: 600; }
+  .readout .warn { color: #ffaa00; }
+  .spacer { flex: 1; }
+  .seg { display: inline-flex; border: 1px solid #3a3f4b; border-radius: 6px; overflow: hidden; }
+  .seg button, .btn { background: rgba(14,17,23,.8); color: #c9ccd1; border: 0;
+         padding: 5px 10px; font-size: 13px; cursor: pointer; }
+  .btn { border: 1px solid #3a3f4b; border-radius: 6px; }
+  .seg button.on, .btn.on { background: #ff4b4b; color: #fff; }
+  .hs { display: flex; align-items: center; gap: 4px; padding: 0; border: 0;
+        background: none; cursor: pointer; transform: translate(-6px, -6px); }
+  .hs .dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff;
+             box-shadow: 0 0 4px rgba(0,0,0,.8); flex: none; }
+  .hs .lbl { color: #fff; background: rgba(14,17,23,.85); border-radius: 4px;
+             padding: 2px 6px; font-size: 12px; white-space: nowrap;
+             font-variant-numeric: tabular-nums; }
+  .hs .full { display: none; }
+  .hs.open .full { display: inline; }
+  .nolabels .hs .lbl { display: none; }
+  .legend { display: flex; align-items: center; gap: 6px; color: #c9ccd1; font-size: 12px;
+            background: rgba(14,17,23,.75); padding: 4px 8px; border-radius: 6px; }
+  .legend .ramp { width: 120px; height: 8px; border-radius: 4px; }
+  .credit { color: #9aa0a6; font-size: 12px; margin-top: 6px; }
+  .credit a { color: #9aa0a6; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <model-viewer id="mv" src="cfm56-5b.glb" alt="CFM56-5B turbofan 3D model"
+    camera-controls animation-name="idle" camera-orbit="35deg 75deg auto"
+    shadow-intensity="0.5" exposure="1.0" environment-image="neutral"
+    interaction-prompt="none">
+  </model-viewer>
+  <div class="bar top">
+    <div class="readout" id="readout">Loading…</div>
+    <div class="spacer"></div>
+    <span class="seg" id="shellSeg" title="Outer casing (nacelle)">
+      <button data-v="solid">Casing</button><button data-v="ghost" class="on">See-through</button><button data-v="hidden">Hidden</button>
+    </span>
+    <button class="btn on" id="lblBtn">Station labels</button>
+  </div>
+  <div class="bar bottom">
+    <div class="legend">Station T
+      <span class="ramp" id="ramp"></span><span>300</span>–<span>1800 K</span></div>
+    <div class="spacer"></div>
+    <div class="legend" id="note"></div>
+  </div>
+</div>
+<div class="credit">3D model: <a href="https://sketchfab.com/CloudHubOmniTeam" target="_blank">CloudHubOmniTeam</a>,
+  “CFM56-5B Engine” (Sketchfab),
+  <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a>.
+  Rotor speed is shown scaled down; station markers are placed approximately.</div>
+
+<script>
+// ── Streamlit component protocol (v1) ─────────────────────────────────────
+function send(type, data) {
+  window.parent.postMessage(Object.assign({ isStreamlitMessage: true, type }, data), '*');
+}
+function setHeight() { send('streamlit:setFrameHeight', { height: document.body.scrollHeight }); }
+
+// ── Model geometry (model coordinates, metres; engine axis = x, fan at -x) ──
+const AXIS_Y = 3.99;
+const POS = {   // station id -> [x, signed radius]; + above the axis, - below
+  '2':  [-5.30,  2.35], '21': [-4.40,  1.80], '18': [ 4.00,  2.90],
+  '25': [-2.30,  1.25], '3':  [-1.00, -1.05], '4':  [ 0.55,  1.15],
+  '45': [ 1.90, -1.20], '5':  [ 4.10,  1.25], '8':  [ 5.80, -0.80],
+};
+
+// RdYlBu reversed, 300–1800 K (same scale as the earlier Plotly model)
+const STOPS = [[49,54,149],[69,117,180],[116,173,209],[171,217,233],[224,243,248],
+               [254,224,144],[253,174,97],[244,109,67],[215,48,39],[165,0,38]];
+function tColor(T) {
+  const f = Math.min(1, Math.max(0, (T - 300) / 1500)) * (STOPS.length - 1);
+  const i = Math.min(STOPS.length - 2, Math.floor(f)), u = f - i;
+  const c = STOPS[i].map((v, k) => Math.round(v + (STOPS[i + 1][k] - v) * u));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+document.getElementById('ramp').style.background =
+  'linear-gradient(90deg,' + [300, 600, 900, 1200, 1500, 1800].map(tColor).join(',') + ')';
+
+// Hot-section glow: dark below ~750 K, deep red -> orange -> yellow-white at 1800 K
+function glow(T) {
+  const f = Math.min(1, Math.max(0, (T - 750) / 1050));
+  if (f <= 0) return [0, 0, 0];
+  const r = Math.min(1, f * 2.2), g = Math.max(0, Math.min(1, (f - 0.3) * 1.5)),
+        b = Math.max(0, (f - 0.8) * 3);
+  return [r * f, g * f * 0.9, b * f * 0.8];
+}
+
+const mv = document.getElementById('mv');
+let S = null, wall0 = 0, ready = false, mats = {}, shellBase = null;
+let shellMode = 'ghost';
+
+function interp(xs, ys, x) {
+  if (x <= xs[0]) return ys[0];
+  const n = xs.length - 1;
+  if (x >= xs[n]) return ys[n];
+  let lo = 0, hi = n;
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (xs[m] <= x) lo = m; else hi = m; }
+  const u = (x - xs[lo]) / (xs[hi] - xs[lo]);
+  return ys[lo] + (ys[hi] - ys[lo]) * u;
+}
+
+// One revolution of the "idle" clip takes 1.633 s at timeScale 1 (0.61 rev/s).
+// N1 100 % -> 2 rev/s on screen (the real fan turns ~85 rev/s).
+function setRotor(n1) {
+  if (!ready) return;
+  if (n1 < 0.5) { mv.pause(); return; }
+  mv.timeScale = 3.27 * n1 / 100;
+  if (mv.paused) mv.play();
+}
+
+function setHot(T) {
+  const m = mats.material_2;
+  if (m) m.setEmissiveFactor(glow(T));
+}
+
+function applyShell() {
+  document.querySelectorAll('#shellSeg button').forEach(b =>
+    b.classList.toggle('on', b.dataset.v === shellMode));
+  const m = mats.material_1;
+  if (!m || !shellBase) return;
+  const a = { solid: 1, ghost: 0.18, hidden: 0 }[shellMode];
+  m.setAlphaMode(a < 1 ? 'BLEND' : 'OPAQUE');
+  m.pbrMetallicRoughness.setBaseColorFactor([shellBase[0], shellBase[1], shellBase[2], a]);
+}
+
+function buildHotspots() {
+  mv.querySelectorAll('.hs').forEach(e => e.remove());
+  if (!S) return;
+  for (const st of S.stations) {
+    const p = POS[st.id];
+    if (!p) continue;
+    const b = document.createElement('button');
+    b.className = 'hs';
+    b.slot = 'hotspot-st' + st.id;
+    b.dataset.position = `${p[0]}m ${AXIS_Y + p[1]}m 0m`;
+    b.dataset.normal = `0m ${p[1] < 0 ? -1 : 1}m 0m`;
+    b.title = `Station ${st.id} · ${st.name}\nT = ${st.T.toFixed(0)} K\n` +
+              `P = ${st.P.toFixed(0)} kPa\nh = ${st.h.toFixed(0)} kJ/kg`;
+    b.innerHTML = `<span class="dot" style="background:${tColor(st.T)}"></span>` +
+      `<span class="lbl">${st.id} · ${st.T.toFixed(0)} K` +
+      `<span class="full"> · ${st.P.toFixed(0)} kPa · ${st.name}</span></span>`;
+    b.addEventListener('click', () => b.classList.toggle('open'));
+    mv.appendChild(b);
+  }
+}
+
+function readout(n1, hotK) {
+  const r = document.getElementById('readout'), note = document.getElementById('note');
+  if (!S) return;
+  const m = S.mode;
+  if (m === 'off') {
+    r.innerHTML = 'Engine OFF · rotor stopped';
+  } else if (m === 'starting' || m === 'fault') {
+    const egt = hotK - 273.15;
+    r.innerHTML = `${m === 'fault' ? '<span class="warn">START FAULT</span> · ' : 'STARTING · '}` +
+      `N1 <b>${n1.toFixed(1)} %</b> · EGT <b class="${egt > 725 ? 'warn' : ''}">${egt.toFixed(0)} °C</b>`;
+  } else {
+    r.innerHTML = `N1 <b>${n1.toFixed(1)} %</b> · T4 <b>${hotK.toFixed(0)} K</b>`;
+  }
+  note.textContent = S.reference
+    ? 'Station values: selected operating point (reference)'
+    : 'Station values: live operating point';
+}
+
+function onRender(state) {
+  S = state;
+  wall0 = performance.now();
+  buildHotspots();
+  if (ready) { setRotor(S.n1); setHot(S.hot_K); }
+  readout(S.n1, S.hot_K);
+  setHeight();
+}
+
+// During a start the browser plays the trace itself, so no rerun is needed.
+function tick() {
+  if (S && ready && S.trace && S.rate > 0) {
+    const tr = S.trace;
+    const t = Math.min(tr.t[tr.t.length - 1], S.t0 + (performance.now() - wall0) / 1000 * S.rate);
+    const n1 = interp(tr.t, tr.N1, t), egtK = interp(tr.t, tr.EGT, t) + 273.15;
+    setRotor(n1); setHot(egtK); readout(n1, egtK);
+  }
+  requestAnimationFrame(tick);
+}
+
+mv.addEventListener('load', () => {
+  for (const m of mv.model.materials) mats[m.name] = m;
+  if (mats.material_1) shellBase = mats.material_1.pbrMetallicRoughness.baseColorFactor.slice();
+  ready = true;
+  applyShell();
+  mv.pause();
+  if (S) { setRotor(S.n1); setHot(S.hot_K); readout(S.n1, S.hot_K); }
+});
+
+document.querySelectorAll('#shellSeg button').forEach(b =>
+  b.addEventListener('click', () => { shellMode = b.dataset.v; applyShell(); }));
+document.getElementById('lblBtn').addEventListener('click', e => {
+  const on = !e.currentTarget.classList.contains('on');
+  e.currentTarget.classList.toggle('on', on);
+  document.getElementById('wrap').classList.toggle('nolabels', !on);
+});
+
+window.addEventListener('message', ev => {
+  if (ev.data && ev.data.type === 'streamlit:render') onRender(ev.data.args.state);
+});
+send('streamlit:componentReady', { apiVersion: 1 });
+new ResizeObserver(setHeight).observe(document.body);
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
