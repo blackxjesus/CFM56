@@ -8,6 +8,8 @@ BSc szakdolgozat — Nyíregyházi Egyetem
 
 A részletes projektdokumentáció a [DOKUMENTACIO.md](DOKUMENTACIO.md), a meghallgatási
 felkészítő a [docs/meghallgatas_felkeszules.md](docs/meghallgatas_felkeszules.md) fájlban van.
+Közérthető, „konyhanyelvű” leírás a hajtómű és a modell működéséről:
+[docs/hajtomu_konyhanyelven.docx](docs/hajtomu_konyhanyelven.docx).
 
 ## Telepítés
 
@@ -40,5 +42,5 @@ python3.12 -m venv .venv
 - `notebooks/` — Jupyter analízis
 - `scripts/` — parancssoros futtatás
 - `tests/` — pytest-tesztek
-- `docs/` — felkészítő, tervek és specifikációk
+- `docs/` — felkészítő, közérthető hajtómű-leírás, tervek és specifikációk
 - `generate_thesis.py` — a dolgozat `.docx` generátora

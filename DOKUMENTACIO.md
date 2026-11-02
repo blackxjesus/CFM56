@@ -3,7 +3,7 @@
 **Szakdolgozat:** CFM56-5B repülőgéphajtómű termodinamikai ciklus-analízise Python alapú szimulációval
 **Intézmény:** Nyíregyházi Egyetem, Műszaki és Agrártudományi Intézet
 **Hajtómű:** CFM International CFM56-5B (vizsgált változat: -5B1)
-**Dokumentáció állapota:** 2026-11-01. A számok forrása a `data/results.csv` és a `data/design_point.pkl`.
+**Dokumentáció állapota:** 2026-11-02. A számok forrása a `data/results.csv` és a `data/design_point.pkl`.
 
 ---
 
@@ -77,6 +77,7 @@ Engine/Engine/
 ├── tests/                     # 97 pytest-teszt
 ├── docs/
 │   ├── meghallgatas_felkeszules.md
+│   ├── hajtomu_konyhanyelven.docx   # Közérthető hajtómű-leírás (Claude-jegyzetből exportálva)
 │   └── superpowers/           # Tervek és specifikációk
 ├── CFM56_szakdolgozat.docx    # A dolgozat
 ├── meghallgatas_felkeszules.docx
@@ -378,7 +379,7 @@ Az app a `data/lookup.pkl`-ből olvas, tehát futás közben nem old meg ciklust
 
 ## 10. Tesztek
 
-`.venv/bin/python -m pytest -q -W ignore` — 97 teszt, kb. 2,5 perc. Utoljára futtatva 2026-11-01-én: 97 sikeres.
+`.venv/bin/python -m pytest -q -W ignore` — 97 teszt, kb. 2,5 perc. Utoljára futtatva 2026-11-02-án: 97 sikeres.
 
 | Terület | Modulok | Tesztek |
 |---------|---------|---------|
@@ -397,5 +398,6 @@ Ha a modell vagy az adat változik, ezeket együtt kell frissíteni:
 2. Ez a fájl, 7. fejezet.
 3. `docs/meghallgatas_felkeszules.md`, majd `scripts/build_hearing_docx.py`.
 4. `generate_thesis.py`, ha a dolgozat számai is érintettek.
+5. A közérthető hajtómű-leírás (Claude-jegyzet: https://claude.ai/artifact/71nmm2rhLWBinmUma7iWqT), majd újraexportálva a `docs/hajtomu_konyhanyelven.docx`, ha a benne szereplő számok érintettek.
 
 A commit-történet a `git log` paranccsal érhető el.

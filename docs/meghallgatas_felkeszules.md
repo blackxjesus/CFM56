@@ -1,7 +1,7 @@
 # Szakdolgozat II meghallgatás – felkészülési anyag
 
 > Saját használatra. Ne olvasd fel! Kulcsszavakat tanulj, és minden számot tudj levezetni.
-> Állapot: 2026-11-01. Minden szám a jelenlegi modellből való (`data/results.csv`, `data/design_point.pkl`).
+> Állapot: 2026-11-02. Minden szám a jelenlegi modellből való (`data/results.csv`, `data/design_point.pkl`).
 
 ---
 
@@ -36,7 +36,7 @@ További tudnivalók a kiírásból:
 4. A validáció egyik fő forrása a Wikipedia [13].
 5. A dolgozatban van néhány szakmai pontatlanság (8. fejezet).
 
-**Az önálló munkáról.** A kiírás kifejezetten a generatív MI miatt vezette be ezt a meghallgatást, a repó 70 commitjából 47-ben pedig Claude társszerzőként szerepel. Ha megmutatod a repót, ez látszik, ezért **mondd el magadtól, pontosan**: mire használtál MI-t, és mi volt a te döntésed. Csak azt állítsd a saját felismerésednek, ami valóban az volt. Ami ebben az anyagban a saját döntésedként szerepel, azt ellenőrizd, és ha nem igaz, fogalmazd át. Tanulni nem a kész válaszokat kell, hanem azt, hogy minden sort meg tudj indokolni.
+**Az önálló munkáról.** A kiírás kifejezetten a generatív MI miatt vezette be ezt a meghallgatást, a repó 76 commitjából 53-ban pedig Claude társszerzőként szerepel (2026-11-02-i állapot). Ha megmutatod a repót, ez látszik, ezért **mondd el magadtól, pontosan**: mire használtál MI-t, és mi volt a te döntésed. Csak azt állítsd a saját felismerésednek, ami valóban az volt. Ami ebben az anyagban a saját döntésedként szerepel, azt ellenőrizd, és ha nem igaz, fogalmazd át. Tanulni nem a kész válaszokat kell, hanem azt, hogy minden sort meg tudj indokolni.
 
 ---
 
@@ -301,6 +301,7 @@ A dolgozat számai megegyeznek a jelenlegi modellel. Ezek a szöveges pontatlans
 | 5.4 | „melegfennakadás” | Lásd 6.10 | Megnevezés egyeztetése |
 | 6.1 | Az EGT nincs értékelve | S5 és T49.5 eltérése | Kiegészíteni 6.7 alapján |
 | Nyilatkozat | „2026. május” | Elavult dátum | Leadáskor frissíteni |
+| Irodalomjegyzék, [INTERNET 1] | „Letöltés: 2026. május 19.” | A repó azóta sokat változott | Leadáskor frissíteni |
 
 A dolgozatot a `generate_thesis.py` generálja. Ha a `.docx`-et kézzel szerkeszted, ne futtasd újra, mert felülírja.
 
@@ -315,6 +316,7 @@ A dolgozatot a `generate_thesis.py` generálja. Ha a `.docx`-et kézzel szerkesz
 - [ ] A 8. fejezet pontjait saját szavaiddal javítani.
 - [ ] Az alapjárati 600 kg/h-t az ICAO-adattal összevetni.
 - [ ] Minden képletet fejből levezetni (3. fejezet).
+- [ ] A `docs/hajtomu_konyhanyelven.docx` közérthető leírását átolvasni: ha egy részét nem tudod a saját szavaiddal elmondani, azt nézd meg alaposabban.
 - [ ] 5 perces összefoglaló gyakorlása.
 - [ ] Bemutató végigpróbálása a `.venv`-ből, offline tartalék elkészítése.
 - [ ] Átgondolni, pontosan mire használtál MI-t, és hogyan mondod el (0. fejezet).
