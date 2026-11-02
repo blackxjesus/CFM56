@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 
 from visualization.station_diagram import plot_station_diagram
 from visualization.ts_diagram import plot_ts_diagram
-from visualization.model_3d import plot_3d_model
+from visualization.engine_viewer import engine_viewer, engine_view_state
 from visualization.ecam import spool_speeds, compute_epr
 from visualization.ewd import ewd_svg, EGT_START_LIMIT
 from visualization.start_plot import plot_start_transient, EGT_TAKEOFF_LIMIT
@@ -283,5 +283,8 @@ with tab2:
     fig2 = plot_ts_diagram([result])
     st.pyplot(fig2, width='content'); plt.close(fig2)
 with tab3:
-    fig3 = plot_3d_model(result)
-    st.plotly_chart(fig3)
+    # Linked to the engine state: rotor follows N1, the hot section glows with
+    # T4 (running) or EGT (start), markers show this operating point's T, P, h.
+    # During a start the view plays the trace in the browser at SPEED.
+    engine_viewer(engine_view_state(ss.eng_state, result, n1_c, ss.start_data,
+                                    ss.frame, ss.speed, SIM_DT))

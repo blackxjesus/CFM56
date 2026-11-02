@@ -3,7 +3,7 @@
 **Szakdolgozat:** CFM56-5B repülőgéphajtómű termodinamikai ciklus-analízise Python alapú szimulációval
 **Intézmény:** Nyíregyházi Egyetem, Műszaki és Agrártudományi Intézet
 **Hajtómű:** CFM International CFM56-5B (vizsgált változat: -5B1)
-**Dokumentáció állapota:** 2026-11-01. A számok forrása a `data/results.csv` és a `data/design_point.pkl`.
+**Dokumentáció állapota:** 2026-11-02. A számok forrása a `data/results.csv` és a `data/design_point.pkl`.
 
 ---
 
@@ -29,7 +29,8 @@ Két függőségfájl van. A `requirements-sim.txt` a teljes, rögzített körny
 | NumPy | 2.2.6 | Numerika. **A pyCycle 4.4.0 NumPy 2.3+ alatt hibával leáll** |
 | Streamlit | 1.66.1 | Alkalmazás. **Legalább 1.50 kell** a `width='stretch'` miatt |
 | Matplotlib | 3.11.2 | 2D diagramok |
-| Plotly | 7.1.0 | Trendek és 3D modell |
+| Plotly | 7.1.0 | Trendek (és a notebookok 3D forgásteste) |
+| model-viewer (Google) | 3.5.0 | Az app 3D hajtómű-nézete, CDN-ről töltődik |
 | Pillow, streamlit-image-coordinates | 13.0.0, 0.4.1 | Kattintható ENG panel |
 
 Fejlesztéshez külön: `pytest` (tesztek), `python-docx` (dokumentum-generálás), `jupyter` (notebookok).
@@ -67,16 +68,19 @@ Engine/Engine/
 │   ├── start_plot.py          # Trendgrafikonok
 │   ├── station_diagram.py     # 2D állomás-diagram
 │   ├── ts_diagram.py          # T-s diagram
-│   └── model_3d.py            # 3D forgástest
+│   ├── model_3d.py            # 3D forgástest (notebookok, scripts/run_design.py)
+│   ├── engine_viewer.py       # Az app 3D nézete: állapot → Streamlit-komponens
+│   └── engine3d/              # A komponens: index.html + cfm56-5b.glb (CC BY 4.0)
 ├── data/
 │   ├── lookup.pkl             # 63 EngineResults az apphoz
 │   ├── design_point.pkl       # Tervezési pont
 │   └── results.csv            # Ugyanezek táblázatban
 ├── notebooks/                 # 01–04: tervezési pont, off-design, vizualizáció, gázkar
 ├── scripts/                   # Parancssoros futtatás, felkészítő .docx generálása
-├── tests/                     # 97 pytest-teszt
+├── tests/                     # 103 pytest-teszt
 ├── docs/
 │   ├── meghallgatas_felkeszules.md
+│   ├── hajtomu_konyhanyelven.docx   # Közérthető hajtómű-leírás (Claude-jegyzetből exportálva)
 │   └── superpowers/           # Tervek és specifikációk
 ├── CFM56_szakdolgozat.docx    # A dolgozat
 ├── meghallgatas_felkeszules.docx
@@ -163,6 +167,10 @@ Ezek a modell bemenetei, ezért egyezésük az irodalommal **nem validálás**.
 ### Referenciaanyagok
 - [Smithsonian — CFM56-2 hajtómű gyűjtemény](https://airandspace.si.edu/collection-objects/cfm-international-cfm56-2-turbofan-engine/nasm_A19900042000)
 - [MIT Thermodynamics — Brayton ciklus](https://web.mit.edu/16.unified/www/FALL/thermodynamics/mud/T7mud03.html)
+
+### 3D modell
+- „CFM56-5B Engine A319 NEO 98–120 kN”, szerző: [CloudHubOmniTeam](https://sketchfab.com/CloudHubOmniTeam) (Sketchfab), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). A forrásmegjelölés kötelező, az app a nézet alatt kiírja. Átalakítva: metal-roughness anyagok, WebP textúrák (`gltf-transform metalrough` és `webp`), a geometria és az animációk változatlanok.
+- A cím pontatlan: a CFM56-5B az A319**ceo** hajtóműve, a NEO LEAP-1A-t vagy PW1100G-t használ. Képaláírásba ne vedd át a „NEO” szót.
 
 A dolgozat hivatkozási listája a `generate_thesis.py` végén található. Az ellenőrzési teendőket a felkészítő 2. fejezete tartalmazza.
 
@@ -371,6 +379,7 @@ Az app a `data/lookup.pkl`-ből olvas, tehát futás közben nem old meg ciklust
 | E/WD | Egy hajtómű: N1, N2, EGT és FF analóg műszerként. RUNNING állapotban P8/P2, OPR, SFC [g/(kN·s)] és tolóerő is. Piros tartomány az EASA TCDS E.003 szerint: N1 104 %, N2 105 %, EGT indításkor 725 °C, járó hajtóműnél 950 °C |
 | Engine trends | N1/N2, EGT, FF az idő függvényében. Az EGT-határvonal indításkor 725 °C, járó hajtóműnél 950 °C (T/O LIMIT) |
 | Cycle analysis | Repülési fázis, gázkar, paraméterek, állomástábla, állomás- és T-s diagram, 3D modell |
+| 3D modell | Valódi CFM56-5B glTF-modell, forgatható, nagyítható. A burkolat tömör, áttetsző vagy rejtett. Kapcsolat a szimulációval: (1) állomásjelölők (2, 21, 18, 25, 3, 4, 45, 5, 8) a kiválasztott munkapont T, P, h értékével, T szerint színezve (300–1800 K); (2) az égőtér és a kiömlő rész izzása RUNNING állapotban T4, indításkor EGT szerint; (3) a rotor N1-gyel arányosan forog, lelassítva (100 % N1 = 2 ford./s a képen, a valóságban kb. 85 ford./s); (4) indításkor a böngésző a szimuláció N1/EGT-görbéjét játssza le a SPEED szerinti sebességgel, attól a ponttól, ahol az E/WD tart. OFF állapotban a rotor áll, a jelölők a kiválasztott munkapontot mutatják (referencia). A jelölők helye közelítő |
 
 **Az indítás és a ciklusmodell kapcsolata:** az indítás N1 ≈ 19 %-on ér véget, a legalacsonyabb ciklusmodell-pont N1 ≈ 76 %. RUNNING állapotban az E/WD elsőrendű késleltetéssel (τ = 4 s szimulációs idő) a kiválasztott gázkarpont felé mozog, ezért IDLE után 0 % gázkarnál is felfut kb. 76 % N1-re. Ez szemléltető átmenet, nem fizikai számítás.
 
@@ -378,14 +387,14 @@ Az app a `data/lookup.pkl`-ből olvas, tehát futás közben nem old meg ciklust
 
 ## 10. Tesztek
 
-`.venv/bin/python -m pytest -q -W ignore` — 97 teszt, kb. 2,5 perc. Utoljára futtatva 2026-11-01-én: 97 sikeres.
+`.venv/bin/python -m pytest -q -W ignore` — 103 teszt, kb. 2,5 perc. Utoljára futtatva 2026-11-02-án: 103 sikeres.
 
 | Terület | Modulok | Tesztek |
 |---------|---------|---------|
 | Ciklusmodell | `test_cfm56`, `test_cycle_balance`, `test_simulation`, `test_results` | 23 |
 | Indítás és FADEC | `test_start_plant`, `test_start_faults`, `test_fadec`, `test_simulate_start`, `test_start_anchor`, `test_start_results` | 35 |
 | App-logika | `test_cockpit_logic`, `test_playback`, `test_trend` | 19 |
-| Megjelenítés | `test_airbus_panel`, `test_ecam`, `test_ewd`, `test_start_plot`, `test_visualization` | 20 |
+| Megjelenítés | `test_airbus_panel`, `test_ecam`, `test_engine_viewer`, `test_ewd`, `test_start_plot`, `test_visualization` | 26 |
 
 ---
 
@@ -397,5 +406,6 @@ Ha a modell vagy az adat változik, ezeket együtt kell frissíteni:
 2. Ez a fájl, 7. fejezet.
 3. `docs/meghallgatas_felkeszules.md`, majd `scripts/build_hearing_docx.py`.
 4. `generate_thesis.py`, ha a dolgozat számai is érintettek.
+5. A közérthető hajtómű-leírás (Claude-jegyzet: https://claude.ai/artifact/71nmm2rhLWBinmUma7iWqT), majd újraexportálva a `docs/hajtomu_konyhanyelven.docx`, ha a benne szereplő számok érintettek.
 
 A commit-történet a `git log` paranccsal érhető el.

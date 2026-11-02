@@ -11,3 +11,4 @@ build/
 problem*_out/
 stdin_out/
 .venv/
+~$*
