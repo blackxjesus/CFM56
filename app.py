@@ -19,8 +19,8 @@ from visualization.station_diagram import plot_station_diagram
 from visualization.ts_diagram import plot_ts_diagram
 from visualization.model_3d import plot_3d_model
 from visualization.ecam import spool_speeds, compute_epr
-from visualization.ewd import ewd_svg
-from visualization.start_plot import plot_start_transient
+from visualization.ewd import ewd_svg, EGT_START_LIMIT
+from visualization.start_plot import plot_start_transient, EGT_TAKEOFF_LIMIT
 from visualization.airbus_panel import PANEL_CSS, panel_image, hit_test
 from streamlit_image_coordinates import streamlit_image_coordinates
 from engine import simulate_start, StartScenario, CockpitConfig, EngMode
@@ -143,7 +143,8 @@ _GRN, _AMB, _RED = '#2bd92b', '#ffaa00', '#ff3b30'
 
 with col_ecam:
     if ss.eng_state == 'OFF':
-        components.html(ewd_svg(0, 0, 0, 0, 'READY FOR START', _GRN), height=720)
+        components.html(ewd_svg(0, 0, 0, 0, 'READY FOR START', _GRN,
+                                egt_limit=EGT_START_LIMIT), height=720)
 
     elif ss.eng_state == 'STARTING':
         @st.fragment(run_every=TICK_DT)
@@ -156,7 +157,7 @@ with col_ecam:
             i = int(new_frame)
             status = 'CRANKING' if mode == 'CRANK' else 'STARTING'
             components.html(ewd_svg(sd.N1[i], sd.EGT[i], sd.N2[i], sd.FF[i],
-                                    status, _AMB), height=720)
+                                    status, _AMB, egt_limit=EGT_START_LIMIT), height=720)
             ev = ' · '.join(f'{t:.0f}s {l}' for t, l in sd.events if t <= sd.t[i])
             st.caption(ev or '— standby —')
             if new_state != 'STARTING':
@@ -168,7 +169,7 @@ with col_ecam:
         sd = ss.start_data
         i = len(sd.t) - 1
         components.html(ewd_svg(sd.N1[i], sd.EGT[i], sd.N2[i], sd.FF[i],
-                                sd.faults[0], _RED), height=720)
+                                sd.faults[0], _RED, egt_limit=EGT_START_LIMIT), height=720)
         ev = ' · '.join(f'{t:.0f}s {l}' for t, l in sd.events)
         st.caption(ev)
         st.error('FADEC: ' + ', '.join(sd.faults) + ' — set ENG MASTER OFF to clear.')
@@ -224,7 +225,9 @@ if ss.start_data is not None:
             h = ss.trend
             if ss.eng_state != 'RUNNING' or h is None:
                 return
-            st.plotly_chart(plot_start_transient(h, len(h.t) - 1), key='start_trend')
+            st.plotly_chart(plot_start_transient(h, len(h.t) - 1, egt_limit=EGT_TAKEOFF_LIMIT,
+                                                 limit_label='T/O LIMIT'),
+                            key='start_trend')
         _run_trend()
 
 # ── Cycle analysis: operating point, parameters + diagrams (always shown) ──
@@ -257,10 +260,12 @@ epr = compute_epr(result) or 1.0
 st.markdown('**Engine parameters**')
 m1, m2, m3, m4, m5, m6 = st.columns(6)
 m1.metric('Thrust', f'{result.thrust_kN:.1f} kN')
-m2.metric('EPR', f'{epr:.3f}')
+m2.metric('P8/P2', f'{epr:.3f}',
+          help='Core-nozzle to inlet total pressure ratio. Not a cockpit EPR: '
+               'the A320 CFM56 sets thrust by N1.')
 m3.metric('OPR', f'{result.opr:.2f}')
 m4.metric('BPR', f'{result.bpr:.2f}')
-m5.metric('SFC', f'{result.sfc:.5f}', help='kg/(kN·s)')
+m5.metric('SFC', f'{result.sfc * 1000:.2f} g/(kN·s)')
 m6.metric('Fuel flow', f'{result.fuel_flow * 3600:.0f} kg/h')
 
 with st.expander('Station thermodynamics (T, P, h)'):

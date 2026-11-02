@@ -63,7 +63,7 @@ Engine/Engine/
 ├── visualization/
 │   ├── ewd.py                 # A320 E/WD kijelző (SVG)
 │   ├── airbus_panel.py        # Kattintható ENG panel
-│   ├── ecam.py                # EPR-számítás, ECAM-segédfüggvények
+│   ├── ecam.py                # P8/P2 nyomásviszony, EGT-színezés, ECAM-segédfüggvények
 │   ├── start_plot.py          # Trendgrafikonok
 │   ├── station_diagram.py     # 2D állomás-diagram
 │   ├── ts_diagram.py          # T-s diagram
@@ -368,8 +368,8 @@ Az app a `data/lookup.pkl`-ből olvas, tehát futás közben nem old meg ciklust
 | ENG panel | Kattintható kép: ENG 1, MODE (CRANK / NORM / IGN/START), APU BLEED |
 | Scenario | NORMAL, HUNG, HOT, NO_FUEL, NO_IGNITION. Járó hajtóműnél váltva újraindít |
 | Speed | 1, 5 vagy 10-szeres szimulációs idő |
-| E/WD | N1, EGT, N2, FF. RUNNING állapotban EPR, OPR, SFC, tolóerő is |
-| Engine trends | N1/N2, EGT, FF az idő függvényében |
+| E/WD | Egy hajtómű: N1, N2, EGT és FF analóg műszerként. RUNNING állapotban P8/P2, OPR, SFC [g/(kN·s)] és tolóerő is. Piros tartomány az EASA TCDS E.003 szerint: N1 104 %, N2 105 %, EGT indításkor 725 °C, járó hajtóműnél 950 °C |
+| Engine trends | N1/N2, EGT, FF az idő függvényében. Az EGT-határvonal indításkor 725 °C, járó hajtóműnél 950 °C (T/O LIMIT) |
 | Cycle analysis | Repülési fázis, gázkar, paraméterek, állomástábla, állomás- és T-s diagram, 3D modell |
 
 **Az indítás és a ciklusmodell kapcsolata:** az indítás N1 ≈ 19 %-on ér véget, a legalacsonyabb ciklusmodell-pont N1 ≈ 76 %. RUNNING állapotban az E/WD elsőrendű késleltetéssel (τ = 4 s szimulációs idő) a kiválasztott gázkarpont felé mozog, ezért IDLE után 0 % gázkarnál is felfut kb. 76 % N1-re. Ez szemléltető átmenet, nem fizikai számítás.

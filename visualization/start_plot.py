@@ -12,11 +12,12 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 EGT_START_LIMIT = 725.0   # °C, matches PlantParams.egt_redline
+EGT_TAKEOFF_LIMIT = 950.0  # °C, EASA TCDS E.003 (running trend)
 
 _GRN, _CYN, _AMB, _RED = '#2bd92b', '#27c3e6', '#ffaa00', '#ff3b30'
 
 
-def plot_start_transient(sd, i, egt_limit=EGT_START_LIMIT):
+def plot_start_transient(sd, i, egt_limit=EGT_START_LIMIT, limit_label='START LIMIT'):
     """Plotly figure of the start transient `sd` drawn up to frame index `i`."""
     n = i + 1
     t = sd.t[:n]
@@ -29,7 +30,7 @@ def plot_start_transient(sd, i, egt_limit=EGT_START_LIMIT):
     fig.add_trace(go.Scatter(x=t, y=sd.FF[:n], name='FF', line=dict(color=_GRN, width=2)), 3, 1)
 
     fig.add_hline(y=egt_limit, row=2, col=1, line=dict(color=_RED, dash='dash', width=1),
-                  label=dict(text=f'START LIMIT {egt_limit:.0f} °C',
+                  label=dict(text=f'{limit_label} {egt_limit:.0f} °C',
                              textposition='end', font=dict(color=_RED, size=10)))
 
     # Event markers; labels stack down the top panel so ones close in time

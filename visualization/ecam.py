@@ -26,15 +26,20 @@ def spool_speeds(result, throttle):
     return n1, n2
 
 
-def egt_color(egt_c):
-    if egt_c > 700:
-        return '#ff3030'
-    if egt_c >= 500:
-        return '#ffaa00'
-    return '#00ff00'
+EGT_TAKEOFF_LIMIT = 950.0  # °C, EASA TCDS E.003
+EGT_START_LIMIT = 725.0    # °C, EASA TCDS E.003
+
+
+def egt_color(egt_c, limit=EGT_TAKEOFF_LIMIT):
+    """Red above the EGT limit in force (start 725 °C / take-off 950 °C)."""
+    return '#ff3030' if egt_c > limit else '#00ff00'
 
 
 def compute_epr(result):
+    """Core-nozzle to inlet total pressure ratio P8/P2.
+
+    Not a cockpit EPR (the A320 CFM56 shows none); displayed as 'P8/P2'.
+    """
     try:
         return result.stations['S8_core_nozz'].P / result.stations['S2_inlet_exit'].P
     except Exception:
@@ -46,13 +51,13 @@ def ecam_rows_starting(sd, i):
     n1 = sd.N1[i]; n2 = sd.N2[i]; egt = sd.EGT[i]; ff = sd.FF[i]; thr = sd.thrust[i]
     return [
         ('N1',  f'{n1:.1f}',  '#00ff00',          '%'),
-        ('EGT', f'{egt:.0f}', egt_color(egt),      '°C'),
+        ('EGT', f'{egt:.0f}', egt_color(egt, EGT_START_LIMIT), '°C'),
         ('N2',  f'{n2:.1f}',  '#00cc00',          '%'),
-        ('EPR', '---',         '#555',             ''),
+        ('P8/P2', '---',       '#555',             ''),
         ('FF',  f'{ff:.0f}',  '#00e000',          'KG/H'),
         ('THR', f'{thr:.1f}', '#00e000',          'kN'),
         ('OPR', '---',         '#555',             ''),
-        ('SFC', '---',         '#555',             'kg/kN·s'),
+        ('SFC', '---',         '#555',             'g/kN·s'),
     ]
 
 
@@ -66,11 +71,11 @@ def ecam_rows_running(result, throttle):
         ('N1',  f'{n1:.1f}', '#00ff00',       '%'),
         ('EGT', str(egt_c),                      egt_color(egt_c), '°C'),
         ('N2',  f'{n2:.1f}', '#00cc00',       '%'),
-        ('EPR', f'{epr:.3f}',                    '#00ff00',       ''),
+        ('P8/P2', f'{epr:.3f}',                  '#00ff00',       ''),
         ('FF',  str(round(result.fuel_flow * 3600)), '#00e000',  'KG/H'),
         ('THR', f'{result.thrust_kN:.1f}',       '#00e000',       'kN'),
         ('OPR', f'{result.opr:.2f}',             '#00e000',       ''),
-        ('SFC', f'{result.sfc:.5f}',             '#00cc00',       'kg/kN·s'),
+        ('SFC', f'{result.sfc * 1000:.2f}',      '#00cc00',       'g/kN·s'),
     ]
 
 

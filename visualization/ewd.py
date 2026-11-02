@@ -10,7 +10,11 @@ Streamlit import.
 
 Gauge geometry: a 270° dial opening at the bottom; fraction 0 -> 1 maps to the
 sweep 135°..405° (clockwise). N1 and N2 are scaled 0..110 %, EGT 0..1000 °C,
-FF 0..6000 kg/h (no redline).
+FF 0..6000 kg/h (no redline). Redlines follow EASA TCDS E.003: N1 104 %,
+N2 105 %, EGT 950 °C take-off / 725 °C start (egt_limit selects which).
+
+The secondary row shows P8/P2 (core-nozzle to inlet total pressure ratio),
+not a cockpit EPR: the A320 CFM56 sets thrust by N1 and shows no EPR.
 """
 import math
 
@@ -18,6 +22,11 @@ GREEN = '#2bd92b'
 CYAN = '#3fd0e0'
 AMBER = '#ffaa00'
 RED = '#ff3b30'
+
+N1_REDLINE = 104.0       # %, EASA TCDS E.003 (engine/cfm56.py N1_REDLINE_PCT)
+N2_REDLINE = 105.0       # %, EASA TCDS E.003 (engine/cfm56.py N2_REDLINE_PCT)
+EGT_TAKEOFF_LIMIT = 950.0  # °C, EASA TCDS E.003
+EGT_START_LIMIT = 725.0    # °C, EASA TCDS E.003
 
 
 def _polar(cx, cy, r, deg):
@@ -80,23 +89,26 @@ def _status_box(cx, cy, text, color):
 
 
 def ewd_svg(n1, egt, n2, ff, status_text, status_color, fob_kg=12000,
-            epr=None, opr=None, sfc=None, thr=None, n1_lim='TOGA'):
+            epr=None, opr=None, sfc=None, thr=None, n1_lim='TOGA',
+            egt_limit=EGT_TAKEOFF_LIMIT):
     """Render the single-engine E/WD as an SVG string.
 
-    n1/egt/n2/ff are the live primary parameters. epr/opr/sfc/thr are the steady
-    performance parameters (shown in the secondary row; '---' when None, i.e. not
-    available during start).
+    n1/egt/n2/ff are the live primary parameters. epr (P8/P2), opr, sfc
+    [kg/(kN·s), shown as g/(kN·s)] and thr are the steady performance parameters
+    (secondary row; '---' when None, i.e. not available during start).
+    egt_limit is the EGT redline in force: EGT_START_LIMIT while starting,
+    EGT_TAKEOFF_LIMIT while running.
     """
     n1_v = f'{n1:.1f}'
     egt_v = f'{round(egt)}'
     n2_v = f'{n2:.1f}'
     ff_v = f'{round(ff)}'
-    egt_col = RED if egt > 725 else (AMBER if egt > 500 else GREEN)
+    egt_col = RED if egt > egt_limit else GREEN
     n1_marks = [(0.545, '6'), (0.909, '10')]
     ff_marks = [(1 / 3, '2k'), (2 / 3, '4k')]
     epr_v = f'{epr:.3f}' if epr is not None else '---'
     opr_v = f'{opr:.2f}' if opr is not None else '---'
-    sfc_v = f'{sfc:.4f}' if sfc is not None else '---'
+    sfc_v = f'{sfc * 1000:.2f}' if sfc is not None else '---'
     thr_v = f'{thr:.1f}' if thr is not None else '---'
     idle = '<text x="230" y="28" text-anchor="middle" font-size="11" fill="' + GREEN + \
         '" font-family="monospace">IDLE</text>' if 55 <= n2 <= 66 else ''
@@ -116,20 +128,20 @@ def ewd_svg(n1, egt, n2, ff, status_text, status_color, fob_kg=12000,
         f'fill="{GREEN}" font-family="monospace">{n1_lim}</text>',
         # ── N1 row ──
         _label(140, 50, 'N1 %'),
-        _gauge(140, 100, 44, n1 / 110.0, 100 / 110.0, n1_v, GREEN, n1_marks),
+        _gauge(140, 100, 44, n1 / 110.0, N1_REDLINE / 110.0, n1_v, GREEN, n1_marks),
         _label(320, 50, 'N2 %'),
-        _gauge(320, 100, 44, n2 / 110.0, 105 / 110.0, n2_v, GREEN, n1_marks),
+        _gauge(320, 100, 44, n2 / 110.0, N2_REDLINE / 110.0, n2_v, GREEN, n1_marks),
         # ── EGT row ──
         _label(140, 176, 'EGT &#176;C'),
-        _gauge(140, 225, 42, egt / 1000.0, 0.9, egt_v, egt_col),
+        _gauge(140, 225, 42, egt / 1000.0, egt_limit / 1000.0, egt_v, egt_col),
         _label(320, 176, 'FF KG/H'),
         _gauge(320, 225, 42, ff / 6000.0, 1.0, ff_v, GREEN, ff_marks),
         # ── secondary performance params ──
         f'<line x1="30" y1="300" x2="430" y2="300" stroke="#2a2f2a" stroke-width="1"/>',
-        _param(70, 322, 'EPR', epr_v),
+        _param(70, 322, 'P8/P2', epr_v),
         _param(170, 322, 'THR kN', thr_v),
         _param(290, 322, 'OPR', opr_v),
-        _param(395, 322, 'SFC', sfc_v),
+        _param(395, 322, 'SFC g/kN&#183;s', sfc_v),
         # ── status box + FOB ──
         _status_box(230, 365, status_text, status_color),
         f'<text x="230" y="402" text-anchor="middle" font-size="12" fill="{CYAN}" '
