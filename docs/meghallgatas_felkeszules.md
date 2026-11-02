@@ -122,7 +122,7 @@ T3s = 288,2 · 26,96^0,2857 ≈ 738,5 K → η_c = (738,5 − 288,2)/(795,8 − 
 - Kéttengelyes felépítés: fan + LPC + LPT az LP, HPC + HPT a HP tengelyen.
 - Miért az N2-t forgatja az indítómotor: az AGB a HP tengelyről hajtódik.
 - FADEC feladata: tüzelőanyag-adagolás, indítási szekvencia, határérték-felügyelet.
-- A CFM56 elsődleges tolóerő-paramétere az **N1**, nem az EPR. A modell EPR-je csak számított kijelzés.
+- A CFM56 elsődleges tolóerő-paramétere az **N1**, nem az EPR. Az app ezért nem EPR-t mutat, hanem a P8/P2 nyomásviszonyt (mag-fúvócső / belépő teljes nyomás), ami csak számított kijelzés.
 
 **Miért csökken S3→S4 között az entalpia (514,8 → 501,6), ha a gáz melegszik?** Mert a CEA abszolút entalpiát számol, amely tartalmazza a képződési entalpiát, és az égés megváltoztatja az összetételt. Ezért csak azonos összetételű különbségek értelmezhetők fajlagos munkaként.
 

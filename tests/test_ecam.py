@@ -5,9 +5,10 @@ from engine.results import EngineResults, StationData, StartTransient
 
 
 def test_egt_color_thresholds():
-    assert egt_color(400) == '#00ff00'
-    assert egt_color(600) == '#ffaa00'
-    assert egt_color(720) == '#ff3030'
+    assert egt_color(798) == '#00ff00'          # take-off, under 950 °C
+    assert egt_color(960) == '#ff3030'
+    assert egt_color(720, 725) == '#00ff00'     # start limit 725 °C
+    assert egt_color(730, 725) == '#ff3030'
 
 
 def test_starting_rows_have_placeholders_for_steady_only_fields():
@@ -21,7 +22,7 @@ def test_starting_rows_have_placeholders_for_steady_only_fields():
     assert by_label['N2'] == '20.0'
     assert by_label['EGT'] == '300'
     assert by_label['FF'] == '400'
-    assert by_label['EPR'] == '---'
+    assert by_label['P8/P2'] == '---'
     assert by_label['OPR'] == '---'
     assert by_label['SFC'] == '---'
 
@@ -36,7 +37,7 @@ def test_running_rows_all_numeric():
     by_label = {r_[0]: r_[1] for r_ in rows}
     assert by_label['THR'] == '113.8'
     assert by_label['OPR'] == '26.96'
-    assert by_label['EPR'] != '---'
+    assert by_label['P8/P2'] != '---'
     assert by_label['EGT'] == str(round(990.0 - 273.15))
     assert by_label['FF'] == str(round(1.538 * 3600))
     assert len(rows) == 8
