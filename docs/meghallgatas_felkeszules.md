@@ -27,7 +27,7 @@ További tudnivalók a kiírásból:
 - Tengely-egyensúllyal zárt tervezési pont: a teljesítménymérleg kézzel is ellenőrizhető.
 - Valódi off-design rögzített geometriával: tömegáram, BPR, OPR, N1 és N2 eredmény, nem bemenet.
 - Tranziens indítási modell, FADEC-logika, 4 indítási hiba, megrekedési fordulatszámok kézi levezetése.
-- Működő app, 103 automatikus teszt, verziókezelés.
+- Működő app, 107 automatikus teszt, verziókezelés.
 
 **Ahol kérdésre számíthatsz** (részletek a 6. fejezetben):
 1. Az SFC 8–17 %-kal nagyobb a közölt értékeknél, miközben a tolóerő +3,7 %.
@@ -198,7 +198,7 @@ Fontos különbség, amit tudj kimondani: **a BPR, OPR, T4 és tervezési tömeg
 | No fuel | szelephiba | N2 22,1 %, EGT 15 °C, FF = 0 | NO LIGHT-OFF, 18,5 s |
 | No ignition | gyújtóhiba | N2 22,1 %, EGT 15 °C, FF = 255 kg/h | WET START, 18,5 s |
 
-**Ellenőrzés:** 103 pytest-teszt, kézi mérleg, megrekedési fordulatszámok levezetése.
+**Ellenőrzés:** 107 pytest-teszt, kézi mérleg, megrekedési fordulatszámok levezetése.
 
 ---
 

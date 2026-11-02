@@ -26,6 +26,7 @@ from streamlit_image_coordinates import streamlit_image_coordinates
 from engine import simulate_start, StartScenario, CockpitConfig, EngMode
 from engine.playback import step_playback, cockpit_action
 from engine.trend import history_from_start, step_trend
+from engine.fuel import burn_fuel, FOB_INITIAL_KG
 
 # ── Config ────────────────────────────────────────────────────────────────
 st.set_page_config(page_title='CFM56-5B Engine Simulator', page_icon='✈️', layout='wide')
@@ -57,6 +58,7 @@ ss.setdefault('speed', 10)
 ss.setdefault('mode', 'NORM')          # CRANK | NORM | IGN/START
 ss.setdefault('master', False)
 ss.setdefault('bleed', True)
+ss.setdefault('fob', FOB_INITIAL_KG)  # kg, burns with FF over sim time; reload refuels
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
 def terminal_state_for(sd):
@@ -162,7 +164,7 @@ _GRN, _AMB, _RED = '#2bd92b', '#ffaa00', '#ff3b30'
 
 with col_ecam:
     if ss.eng_state == 'OFF':
-        components.html(ewd_svg(0, 0, 0, 0, 'READY FOR START', _GRN,
+        components.html(ewd_svg(0, 0, 0, 0, 'READY FOR START', _GRN, fob_kg=ss.fob,
                                 egt_limit=EGT_START_LIMIT), height=720)
 
     elif ss.eng_state == 'STARTING':
@@ -172,11 +174,14 @@ with col_ecam:
             terminal = terminal_state_for(sd)
             new_state, new_frame = step_playback(
                 ss.eng_state, ss.frame, len(sd.t), ss.speed, TICK_DT, SIM_DT, terminal)
-            ss.frame = new_frame
             i = int(new_frame)
+            # Fuel used over the sim time this tick advanced (SPEED x tick).
+            ss.fob = burn_fuel(ss.fob, sd.FF[i], (new_frame - ss.frame) * SIM_DT)
+            ss.frame = new_frame
             status = 'CRANKING' if mode == 'CRANK' else 'STARTING'
             components.html(ewd_svg(sd.N1[i], sd.EGT[i], sd.N2[i], sd.FF[i],
-                                    status, _AMB, egt_limit=EGT_START_LIMIT), height=720)
+                                    status, _AMB, fob_kg=ss.fob,
+                                    egt_limit=EGT_START_LIMIT), height=720)
             ev = ' · '.join(f'{t:.0f}s {l}' for t, l in sd.events if t <= sd.t[i])
             st.caption(ev or '— standby —')
             if new_state != 'STARTING':
@@ -188,7 +193,8 @@ with col_ecam:
         sd = ss.start_data
         i = len(sd.t) - 1
         components.html(ewd_svg(sd.N1[i], sd.EGT[i], sd.N2[i], sd.FF[i],
-                                sd.faults[0], _RED, egt_limit=EGT_START_LIMIT), height=720)
+                                sd.faults[0], _RED, fob_kg=ss.fob,
+                                egt_limit=EGT_START_LIMIT), height=720)
         ev = ' · '.join(f'{t:.0f}s {l}' for t, l in sd.events)
         st.caption(ev)
         st.error('FADEC: ' + ', '.join(sd.faults) + ' — set ENG MASTER OFF to clear.')
@@ -215,8 +221,12 @@ with col_ecam:
                 label = f'THR {throttle}%'
             ss.trend_throttle = throttle
             cur = step_trend(ss.trend, target, ss.speed * TICK_DT, label=label)
+            # FF = SFC x thrust of the operating point, eased like the gauges;
+            # burned over SPEED x tick seconds of sim time.
+            ss.fob = burn_fuel(ss.fob, cur['FF'], ss.speed * TICK_DT)
             components.html(ewd_svg(cur['N1'], cur['EGT'], cur['N2'], cur['FF'],
-                                    '', _GRN, epr=compute_epr(result), opr=result.opr,
+                                    '', _GRN, fob_kg=ss.fob,
+                                    epr=compute_epr(result), opr=result.opr,
                                     sfc=result.sfc, thr=result.thrust_kN), height=720)
         _run()
 

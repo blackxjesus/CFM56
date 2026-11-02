@@ -60,7 +60,8 @@ Engine/Engine/
 │   ├── start_transient.py     # Indítási plant-modell és simulate_start()
 │   ├── fadec.py               # ENG MODE / MASTER / BLEED → vezérlőparancsok
 │   ├── playback.py            # Lejátszás és pilótafülke-állapotgép
-│   └── trend.py               # Folytonos trend elsőrendű késleltetéssel
+│   ├── trend.py               # Folytonos trend elsőrendű késleltetéssel
+│   └── fuel.py                # FOB: üzemanyag-fogyás FF · Δt szerint
 ├── visualization/
 │   ├── ewd.py                 # A320 E/WD kijelző (SVG)
 │   ├── airbus_panel.py        # Kattintható ENG panel
@@ -77,7 +78,7 @@ Engine/Engine/
 │   └── results.csv            # Ugyanezek táblázatban
 ├── notebooks/                 # 01–04: tervezési pont, off-design, vizualizáció, gázkar
 ├── scripts/                   # Parancssoros futtatás, felkészítő .docx generálása
-├── tests/                     # 103 pytest-teszt
+├── tests/                     # 107 pytest-teszt
 ├── docs/
 │   ├── meghallgatas_felkeszules.md
 │   ├── hajtomu_konyhanyelven.docx   # Közérthető hajtómű-leírás (Claude-jegyzetből exportálva)
@@ -377,6 +378,7 @@ Az app a `data/lookup.pkl`-ből olvas, tehát futás közben nem old meg ciklust
 | Scenario | NORMAL, HUNG, HOT, NO_FUEL, NO_IGNITION. Járó hajtóműnél váltva újraindít |
 | Speed | 1, 5 vagy 10-szeres szimulációs idő |
 | E/WD | Egy hajtómű: N1, N2, EGT és FF analóg műszerként. RUNNING állapotban P8/P2, OPR, SFC [g/(kN·s)] és tolóerő is. Piros tartomány az EASA TCDS E.003 szerint: N1 104 %, N2 105 %, EGT indításkor 725 °C, járó hajtóműnél 950 °C |
+| FOB | Fedélzeti üzemanyag, induláskor 12 000 kg. Minden ütemben az E/WD tüzelőanyag-áramával csökken a szimulációs idő szerint: ΔFOB = FF · Δt, ahol járó hajtóműnél FF = SFC · F_N, Δt = SPEED · 0,1 s. Indításkor az indítási görbe FF-je fogy. 0 kg alá nem megy; az oldal újratöltése újratankol. A FOB-ot a hajtómű nem figyeli (0 kg-nál nincs leállás) |
 | Engine trends | N1/N2, EGT, FF az idő függvényében. Az EGT-határvonal indításkor 725 °C, járó hajtóműnél 950 °C (T/O LIMIT) |
 | Cycle analysis | Repülési fázis, gázkar, paraméterek, állomástábla, állomás- és T-s diagram, 3D modell |
 | 3D modell | Valódi CFM56-5B glTF-modell, forgatható, nagyítható. A burkolat tömör, áttetsző vagy rejtett. Kapcsolat a szimulációval: (1) állomásjelölők (2, 21, 18, 25, 3, 4, 45, 5, 8) a kiválasztott munkapont T, P, h értékével, T szerint színezve (300–1800 K), a jobb felső sarokban jelmagyarázat: szín, állomásszám, hajtóműrész, T; a hajtóműrészek neve a tengely alatt (Fan, Booster (LPC), HPC, Combustor, HPT, LPT, Exhaust nozzle, Bypass duct), gombbal kikapcsolható; (2) az égőtér és a kiömlő rész izzása RUNNING állapotban T4, indításkor EGT szerint; (3) a rotor N1-gyel arányosan forog, lelassítva (100 % N1 = 2 ford./s a képen, a valóságban kb. 85 ford./s); (4) indításkor a böngésző a szimuláció N1/EGT-görbéjét játssza le a SPEED szerinti sebességgel, attól a ponttól, ahol az E/WD tart. OFF állapotban a rotor áll, a jelölők a kiválasztott munkapontot mutatják (referencia). A jelölők helye közelítő |
@@ -387,13 +389,13 @@ Az app a `data/lookup.pkl`-ből olvas, tehát futás közben nem old meg ciklust
 
 ## 10. Tesztek
 
-`.venv/bin/python -m pytest -q -W ignore` — 103 teszt, kb. 2,5 perc. Utoljára futtatva 2026-11-02-án: 103 sikeres.
+`.venv/bin/python -m pytest -q -W ignore` — 107 teszt, kb. 2,5 perc. Utoljára futtatva 2026-11-02-án: 107 sikeres.
 
 | Terület | Modulok | Tesztek |
 |---------|---------|---------|
 | Ciklusmodell | `test_cfm56`, `test_cycle_balance`, `test_simulation`, `test_results` | 23 |
 | Indítás és FADEC | `test_start_plant`, `test_start_faults`, `test_fadec`, `test_simulate_start`, `test_start_anchor`, `test_start_results` | 35 |
-| App-logika | `test_cockpit_logic`, `test_playback`, `test_trend` | 19 |
+| App-logika | `test_cockpit_logic`, `test_fuel`, `test_playback`, `test_trend` | 23 |
 | Megjelenítés | `test_airbus_panel`, `test_ecam`, `test_engine_viewer`, `test_ewd`, `test_start_plot`, `test_visualization` | 26 |
 
 ---
