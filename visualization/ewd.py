@@ -3,11 +3,11 @@
 A320 ECAM Engine/Warning Display (E/WD) — SVG renderer.
 
 ewd_svg(n1, egt, n2, ff, status_text, status_color, fob_kg) builds the upper-ECAM
-engine display: dual round N1 and EGT dial gauges (needle + red-line + green
-digital readout), N2 % and FF KG/H digital readouts, a per-engine status box
-(READY FOR START / STARTING / fault), and the FOB line. Single-engine data is
-mirrored into both ENG 1 and ENG 2 columns. Pure function, returns an SVG string
-shown via streamlit.components.v1.html. No Streamlit import.
+engine display for the single simulated engine: round N1 and EGT dial gauges
+(needle + red-line + green digital readout), N2 % and FF KG/H digital readouts,
+a status box (READY FOR START / STARTING / fault), and the FOB line. Pure
+function, returns an SVG string shown via streamlit.components.v1.html. No
+Streamlit import.
 
 Gauge geometry: a 270° dial opening at the bottom; fraction 0 -> 1 maps to the
 sweep 135°..405° (clockwise). N1 is scaled 0..110 %, EGT 0..1000 °C.
@@ -83,7 +83,7 @@ def _status_box(cx, cy, text, color):
 
 def ewd_svg(n1, egt, n2, ff, status_text, status_color, fob_kg=12000,
             epr=None, opr=None, sfc=None, thr=None, n1_lim='TOGA'):
-    """Render the full dual-engine E/WD as an SVG string (data mirrored L/R).
+    """Render the single-engine E/WD as an SVG string.
 
     n1/egt/n2/ff are the live primary parameters. epr/opr/sfc/thr are the steady
     performance parameters (shown in the secondary row; '---' when None, i.e. not
@@ -116,34 +116,31 @@ def ewd_svg(n1, egt, n2, ff, status_text, status_color, fob_kg=12000,
         f'<text x="430" y="36" text-anchor="end" font-size="12" font-weight="bold" '
         f'fill="{GREEN}" font-family="monospace">{n1_lim}</text>',
         # ── N1 row ──
-        '<text x="230" y="62" text-anchor="middle" font-size="13" fill="' + CYAN +
+        '<text x="240" y="85" text-anchor="middle" font-size="13" fill="' + CYAN +
         '" font-family="monospace">N1</text>'
-        '<text x="230" y="77" text-anchor="middle" font-size="10" fill="' + CYAN +
+        '<text x="240" y="100" text-anchor="middle" font-size="10" fill="' + CYAN +
         '" font-family="monospace">%</text>',
-        _gauge(108, 100, 44, n1 / 110.0, 100 / 110.0, n1_v, GREEN, n1_marks),
-        _gauge(352, 100, 44, n1 / 110.0, 100 / 110.0, n1_v, GREEN, n1_marks),
-        '<text x="230" y="118" text-anchor="middle" font-size="11" fill="' + CYAN +
+        _gauge(140, 100, 44, n1 / 110.0, 100 / 110.0, n1_v, GREEN, n1_marks),
+        '<text x="340" y="85" text-anchor="middle" font-size="11" fill="' + CYAN +
         '" font-family="monospace">N2 %</text>',
-        _digital(230, 140, n2_v, GREEN),
+        _digital(340, 108, n2_v, GREEN),
         # ── EGT row ──
-        '<text x="230" y="205" text-anchor="middle" font-size="13" fill="' + CYAN +
+        '<text x="240" y="210" text-anchor="middle" font-size="13" fill="' + CYAN +
         '" font-family="monospace">EGT</text>'
-        '<text x="230" y="220" text-anchor="middle" font-size="10" fill="' + CYAN +
+        '<text x="240" y="225" text-anchor="middle" font-size="10" fill="' + CYAN +
         '" font-family="monospace">&#176;C</text>',
-        _gauge(108, 225, 42, egt / 1000.0, 0.9, egt_v, egt_col),
-        _gauge(352, 225, 42, egt / 1000.0, 0.9, egt_v, egt_col),
-        '<text x="230" y="252" text-anchor="middle" font-size="11" fill="' + CYAN +
+        _gauge(140, 225, 42, egt / 1000.0, 0.9, egt_v, egt_col),
+        '<text x="340" y="210" text-anchor="middle" font-size="11" fill="' + CYAN +
         '" font-family="monospace">FF KG/H</text>',
-        _digital(230, 274, ff_v, GREEN),
+        _digital(340, 233, ff_v, GREEN),
         # ── secondary performance params ──
         f'<line x1="30" y1="300" x2="430" y2="300" stroke="#2a2f2a" stroke-width="1"/>',
         _param(70, 322, 'EPR', epr_v),
         _param(170, 322, 'THR kN', thr_v),
         _param(290, 322, 'OPR', opr_v),
         _param(395, 322, 'SFC', sfc_v),
-        # ── status boxes + FOB ──
-        _status_box(108, 365, status_text, status_color),
-        _status_box(352, 365, status_text, status_color),
+        # ── status box + FOB ──
+        _status_box(230, 365, status_text, status_color),
         f'<text x="230" y="402" text-anchor="middle" font-size="12" fill="{CYAN}" '
         f'font-family="monospace">FOB: <tspan fill="{GREEN}">{round(fob_kg)}</tspan> KG</text>',
         '</svg>',
