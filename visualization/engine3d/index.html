@@ -26,17 +26,24 @@
          padding: 5px 10px; font-size: 13px; cursor: pointer; }
   .btn { border: 1px solid #3a3f4b; border-radius: 6px; }
   .seg button.on, .btn.on { background: #ff4b4b; color: #fff; }
-  .hs { display: flex; align-items: center; gap: 4px; padding: 0; border: 0;
-        background: none; cursor: pointer; transform: translate(-6px, -6px); }
-  .hs .dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff;
-             box-shadow: 0 0 4px rgba(0,0,0,.8); flex: none; }
-  .hs .lbl { color: #fff; background: rgba(14,17,23,.85); border-radius: 4px;
-             padding: 2px 6px; font-size: 12px; white-space: nowrap;
-             font-variant-numeric: tabular-nums; }
+  /* model-viewer centres the slotted element on the 3D point, so the marker is
+     zero-size: the dot is centred on the point, the label hangs to its right. */
+  .hs { width: 0; height: 0; padding: 0; border: 0; background: none; cursor: pointer; }
+  .hs .dot { position: absolute; transform: translate(-50%, -50%); width: 12px; height: 12px;
+             border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 4px rgba(0,0,0,.8); }
+  .hs .lbl { position: absolute; left: 10px; transform: translateY(-50%); color: #fff;
+             background: rgba(14,17,23,.85); border-radius: 4px; padding: 2px 6px;
+             font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .hs .full { display: none; }
   .hs.open .full { display: inline; }
   .nolabels .hs .lbl { display: none; }
   .nolabels .key { display: none; }
+  .part { width: 0; height: 0; pointer-events: none; }
+  .part span { position: absolute; transform: translate(-50%, -50%);
+          color: #ffd479; background: rgba(14,17,23,.85); border: 1px solid #ffd479;
+          border-radius: 4px; padding: 1px 6px; font-size: 12px; font-weight: 600;
+          letter-spacing: .3px; white-space: nowrap; }
+  .noparts .part { display: none; }
   .legend { display: flex; align-items: center; gap: 6px; color: #c9ccd1; font-size: 12px;
             background: rgba(14,17,23,.75); padding: 4px 8px; border-radius: 6px; }
   .legend .ramp { width: 120px; height: 8px; border-radius: 4px; }
@@ -55,7 +62,7 @@
 <body>
 <div id="wrap">
   <model-viewer id="mv" src="cfm56-5b.glb" alt="CFM56-5B turbofan 3D model"
-    camera-controls animation-name="idle" camera-orbit="35deg 75deg auto"
+    camera-controls animation-name="idle" camera-orbit="22deg 80deg auto"
     shadow-intensity="0.5" exposure="1.0" environment-image="neutral"
     interaction-prompt="none">
   </model-viewer>
@@ -65,6 +72,7 @@
     <span class="seg" id="shellSeg" title="Outer casing (nacelle)">
       <button data-v="solid">Casing</button><button data-v="ghost" class="on">See-through</button><button data-v="hidden">Hidden</button>
     </span>
+    <button class="btn on" id="partBtn">Part names</button>
     <button class="btn on" id="lblBtn">Station labels</button>
   </div>
   <div class="key" id="key"></div>
@@ -90,9 +98,10 @@ function setHeight() { send('streamlit:setFrameHeight', { height: document.body.
 // ── Model geometry (model coordinates, metres; engine axis = x, fan at -x) ──
 const AXIS_Y = 3.99;
 const POS = {   // station id -> [x, signed radius]; + above the axis, - below
-  '2':  [-5.30,  2.35], '21': [-4.40,  1.80], '18': [ 4.00,  2.90],
-  '25': [-2.30,  1.25], '3':  [-1.00, -1.05], '4':  [ 0.55,  1.15],
-  '45': [ 1.90, -1.20], '5':  [ 4.10,  1.25], '8':  [ 5.80, -0.80],
+  // x read off a ruler laid along the model axis in the side view
+  '2':  [-6.50,  2.35], '21': [-5.60,  1.80], '18': [ 4.60,  2.90],
+  '25': [-3.45,  1.25], '3':  [-2.00, -1.05], '4':  [-0.80,  1.15],
+  '45': [ 0.05, -1.20], '5':  [ 2.75,  1.25], '8':  [ 4.40, -1.30],
 };
 
 // RdYlBu reversed, 300–1800 K (same scale as the earlier Plotly model)
@@ -152,6 +161,24 @@ function applyShell() {
   const a = { solid: 1, ghost: 0.18, hidden: 0 }[shellMode];
   m.setAlphaMode(a < 1 ? 'BLEND' : 'OPAQUE');
   m.pbrMetallicRoughness.setBaseColorFactor([shellBase[0], shellBase[1], shellBase[2], a]);
+}
+
+// Engine parts, placed under the axis (station markers sit above it).
+// x from the side view of the model; staggered in height so names do not overlap.
+const PARTS = [
+  ['Fan',             -6.00, -3.70], ['Booster (LPC)', -4.40, -2.35],
+  ['HPC',             -2.65, -3.10], ['Combustor',     -1.40, -2.35],
+  ['HPT',             -0.40, -3.10], ['LPT',            1.60, -2.35],
+  ['Exhaust nozzle',   4.60, -1.90], ['Bypass duct',   -1.50,  3.30],
+];
+for (const [name, x, r] of PARTS) {
+  const d = document.createElement('div');
+  d.className = 'part';
+  d.slot = 'hotspot-part-' + name.replace(/\W+/g, '');
+  d.dataset.position = `${x}m ${AXIS_Y + r}m 0m`;
+  d.dataset.normal = `0m ${r < 0 ? -1 : 1}m 0m`;
+  d.innerHTML = `<span>${name}</span>`;
+  mv.appendChild(d);
 }
 
 function buildHotspots() {
@@ -228,6 +255,11 @@ mv.addEventListener('load', () => {
 
 document.querySelectorAll('#shellSeg button').forEach(b =>
   b.addEventListener('click', () => { shellMode = b.dataset.v; applyShell(); }));
+document.getElementById('partBtn').addEventListener('click', e => {
+  const on = !e.currentTarget.classList.contains('on');
+  e.currentTarget.classList.toggle('on', on);
+  document.getElementById('wrap').classList.toggle('noparts', !on);
+});
 document.getElementById('lblBtn').addEventListener('click', e => {
   const on = !e.currentTarget.classList.contains('on');
   e.currentTarget.classList.toggle('on', on);
