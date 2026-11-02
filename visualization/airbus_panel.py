@@ -3,8 +3,8 @@
 Airbus overhead ENG panel for the Streamlit app — a clickable PIL image.
 
 panel_image(mode, master_on, bleed_on) renders the ENG panel (dark slate body,
-corner screws, ENG 1/ENG 2 toggle switches with white caps, a rotary MODE knob
-whose pointer rotates to the selection, an APU BLEED switch, and FIRE buttons) as
+corner screws, the ENG 1 toggle switch with white cap, a rotary MODE knob
+whose pointer rotates to the selection, an APU BLEED switch, and a FIRE button) as
 a PIL image reflecting the current state. It is shown via streamlit-image-
 coordinates so the switches are clicked directly; hit_test(x, y) maps a click to
 the control ('master' | 'mode' | 'bleed' | None) using PANEL_REGIONS.
@@ -102,7 +102,6 @@ def panel_image(mode, master_on, bleed_on):
     d.text((180, 26), 'ENG', font=_font(13), fill=(231, 233, 236), anchor='mm')
 
     _toggle(d, 90, 'ENG 1', master_on)
-    _toggle(d, 270, 'ENG 2', False)
 
     # Rotary MODE knob
     grn = (124, 252, 0)
@@ -131,8 +130,8 @@ def panel_image(mode, master_on, bleed_on):
     d.text((180, 252), 'APU BLEED', font=_font(9), fill=btxt, anchor='mm')
     d.text((180, 265), 'ON' if bleed_on else 'OFF', font=_font(10), fill=btxt, anchor='mm')
 
-    # FIRE buttons (decorative)
-    for fx, lbl in ((52, '1'), (308, '2')):
+    # FIRE button (decorative)
+    for fx, lbl in ((52, '1'),):
         d.rounded_rectangle((fx - 22, 238, fx + 22, 278), radius=4,
                             fill=(13, 13, 15), outline=(90, 29, 29))
         d.text((fx, 252), 'FIRE', font=_font(7), fill=(194, 59, 59), anchor='mm')
