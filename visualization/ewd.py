@@ -3,14 +3,14 @@
 A320 ECAM Engine/Warning Display (E/WD) — SVG renderer.
 
 ewd_svg(n1, egt, n2, ff, status_text, status_color, fob_kg) builds the upper-ECAM
-engine display for the single simulated engine: round N1 and EGT dial gauges
-(needle + red-line + green digital readout), N2 % and FF KG/H digital readouts,
-a status box (READY FOR START / STARTING / fault), and the FOB line. Pure
+engine display for the single simulated engine: round N1, N2, EGT and FF dial
+gauges (needle + red-line + green digital readout), a status box (READY FOR START / STARTING / fault), and the FOB line. Pure
 function, returns an SVG string shown via streamlit.components.v1.html. No
 Streamlit import.
 
 Gauge geometry: a 270° dial opening at the bottom; fraction 0 -> 1 maps to the
-sweep 135°..405° (clockwise). N1 is scaled 0..110 %, EGT 0..1000 °C.
+sweep 135°..405° (clockwise). N1 and N2 are scaled 0..110 %, EGT 0..1000 °C,
+FF 0..6000 kg/h (no redline).
 """
 import math
 
@@ -37,7 +37,7 @@ def _gauge(cx, cy, r, frac, redfrac, value, vcolor, marks=None):
     frac = max(0.0, min(1.0, frac))
     sweep = 270.0
     bg = _arc(cx, cy, r, 135, 135 + sweep, '#3a3f45', 5)
-    red = _arc(cx, cy, r, 135 + sweep * redfrac, 135 + sweep, RED, 5)
+    red = _arc(cx, cy, r, 135 + sweep * redfrac, 135 + sweep, RED, 5) if redfrac < 1 else ''
     lvl = _arc(cx, cy, r, 135, 135 + sweep * frac, GREEN, 5) if frac > 0 else ''
     ang = 135 + sweep * frac
     nx, ny = _polar(cx, cy, r * 0.82, ang)
@@ -57,11 +57,9 @@ def _gauge(cx, cy, r, frac, redfrac, value, vcolor, marks=None):
     return bg + red + lvl + tick + needle + box
 
 
-def _digital(cx, cy, value, color):
-    return (f'<rect x="{cx-30}" y="{cy-13}" width="60" height="24" rx="2" '
-            f'fill="#06140a" stroke="{color}" stroke-width="1.2"/>'
-            f'<text x="{cx}" y="{cy+5}" text-anchor="middle" font-size="16" '
-            f'font-weight="bold" fill="{color}" font-family="monospace">{value}</text>')
+def _label(cx, y, text):
+    return (f'<text x="{cx}" y="{y}" text-anchor="middle" font-size="12" '
+            f'fill="{CYAN}" font-family="monospace">{text}</text>')
 
 
 def _param(cx, cy, label, value):
@@ -95,6 +93,7 @@ def ewd_svg(n1, egt, n2, ff, status_text, status_color, fob_kg=12000,
     ff_v = f'{round(ff)}'
     egt_col = RED if egt > 725 else (AMBER if egt > 500 else GREEN)
     n1_marks = [(0.545, '6'), (0.909, '10')]
+    ff_marks = [(1 / 3, '2k'), (2 / 3, '4k')]
     epr_v = f'{epr:.3f}' if epr is not None else '---'
     opr_v = f'{opr:.2f}' if opr is not None else '---'
     sfc_v = f'{sfc:.4f}' if sfc is not None else '---'
@@ -116,23 +115,15 @@ def ewd_svg(n1, egt, n2, ff, status_text, status_color, fob_kg=12000,
         f'<text x="430" y="36" text-anchor="end" font-size="12" font-weight="bold" '
         f'fill="{GREEN}" font-family="monospace">{n1_lim}</text>',
         # ── N1 row ──
-        '<text x="240" y="85" text-anchor="middle" font-size="13" fill="' + CYAN +
-        '" font-family="monospace">N1</text>'
-        '<text x="240" y="100" text-anchor="middle" font-size="10" fill="' + CYAN +
-        '" font-family="monospace">%</text>',
+        _label(140, 50, 'N1 %'),
         _gauge(140, 100, 44, n1 / 110.0, 100 / 110.0, n1_v, GREEN, n1_marks),
-        '<text x="340" y="85" text-anchor="middle" font-size="11" fill="' + CYAN +
-        '" font-family="monospace">N2 %</text>',
-        _digital(340, 108, n2_v, GREEN),
+        _label(320, 50, 'N2 %'),
+        _gauge(320, 100, 44, n2 / 110.0, 105 / 110.0, n2_v, GREEN, n1_marks),
         # ── EGT row ──
-        '<text x="240" y="210" text-anchor="middle" font-size="13" fill="' + CYAN +
-        '" font-family="monospace">EGT</text>'
-        '<text x="240" y="225" text-anchor="middle" font-size="10" fill="' + CYAN +
-        '" font-family="monospace">&#176;C</text>',
+        _label(140, 176, 'EGT &#176;C'),
         _gauge(140, 225, 42, egt / 1000.0, 0.9, egt_v, egt_col),
-        '<text x="340" y="210" text-anchor="middle" font-size="11" fill="' + CYAN +
-        '" font-family="monospace">FF KG/H</text>',
-        _digital(340, 233, ff_v, GREEN),
+        _label(320, 176, 'FF KG/H'),
+        _gauge(320, 225, 42, ff / 6000.0, 1.0, ff_v, GREEN, ff_marks),
         # ── secondary performance params ──
         f'<line x1="30" y1="300" x2="430" y2="300" stroke="#2a2f2a" stroke-width="1"/>',
         _param(70, 322, 'EPR', epr_v),
