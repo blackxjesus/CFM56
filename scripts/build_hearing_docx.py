@@ -2,7 +2,9 @@
 
 Handles the Markdown subset used in that file: headings, paragraphs, bullets,
 numbered items, checkboxes, tables, quotes, code blocks, **bold**, *italic*
-and `code`. Requires python-docx.
+and `code`. Plain-text formulas get real sub- and superscripts: η_th, ṁ_f and
+N2_idle become subscripts, OPR^(−(γ−1)/γ) and 26,96^0,2857 superscripts.
+Requires python-docx.
 """
 import os
 import re
@@ -15,6 +17,45 @@ SOURCE = os.path.join(ROOT, 'docs', 'meghallgatas_felkeszules.md')
 TARGET = os.path.join(ROOT, 'meghallgatas_felkeszules.docx')
 
 INLINE = re.compile(r'(\*\*.+?\*\*|`[^`]+`|\*[^*\s][^*]*\*)')
+# A subscript follows a letter or digit: η_th, V_0, N2_idle.
+SUBSCRIPT = re.compile(r'(?<=[^\W_])_([^\W_]+)')
+# A superscript is ^ followed by a bracketed group or a (signed) number/word.
+SUPERSCRIPT = re.compile(r'\^(?:\(|([−-]?[\d,.]*\d|[^\W_]+))')
+
+
+def add_formula_text(paragraph, text, size=None):
+    """Add text, turning _x into subscript and ^(...) / ^x into superscript."""
+    runs = []  # (text, kind)
+    pos = 0
+    while pos < len(text):
+        sub = SUBSCRIPT.search(text, pos)
+        sup = SUPERSCRIPT.search(text, pos)
+        match = min((m for m in (sub, sup) if m), key=lambda m: m.start(), default=None)
+        if match is None:
+            runs.append((text[pos:], None))
+            break
+        runs.append((text[pos:match.start()], None))
+        if match.re is SUBSCRIPT:
+            runs.append((match.group(1), 'sub'))
+            pos = match.end()
+        elif match.group(1) is not None:
+            runs.append((match.group(1), 'sup'))
+            pos = match.end()
+        else:  # bracketed exponent: take everything up to the matching ')'
+            depth, end = 1, match.end()
+            while end < len(text) and depth:
+                depth += {'(': 1, ')': -1}.get(text[end], 0)
+                end += 1
+            runs.append((text[match.end():end - 1], 'sup'))
+            pos = end
+    for chunk, kind in runs:
+        if not chunk:
+            continue
+        run = paragraph.add_run(chunk)
+        run.font.subscript = kind == 'sub'
+        run.font.superscript = kind == 'sup'
+        if size:
+            run.font.size = Pt(size)
 
 
 def add_inline(paragraph, text, size=None):
@@ -31,7 +72,8 @@ def add_inline(paragraph, text, size=None):
             run = paragraph.add_run(part[1:-1])
             run.italic = True
         else:
-            run = paragraph.add_run(part)
+            add_formula_text(paragraph, part, size)
+            continue
         if size:
             run.font.size = Pt(size)
 
