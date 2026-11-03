@@ -302,7 +302,6 @@ A dolgozatom számai megegyeznek a jelenlegi modellel. Ezek a szöveges pontatla
 | 5.4 | „melegfennakadás” | Lásd 6.10 | Egyeztetem az elnevezést |
 | 6.1 | Az EGT nincs értékelve | S5 és T49.5 eltérése | Kiegészítem a 6.7 alapján |
 | Nyilatkozat | „2026. május” | Elavult dátum | Leadáskor frissítem |
-| Irodalomjegyzék, [INTERNET 1] | „Letöltés: 2026. május 19.” | A repó azóta sokat változott | Leadáskor frissítem |
 | 7. fejezet (továbbfejlesztés) | „3D forgatható hajtóműmodell” | Az app már valódi CFM56-5B glTF-modellt mutat, a szimulációhoz kötve. Idegen modell, forrásmegjelölés kötelező | Leírom a 3D nézetet, hivatkozom a modellt (CloudHubOmniTeam, Sketchfab, CC BY 4.0), a „NEO” szót kerülöm |
 
 A dolgozatomat a `generate_thesis.py` generálja. Ha a `.docx`-et kézzel szerkesztem, utána nem futtatom újra, mert felülírja.

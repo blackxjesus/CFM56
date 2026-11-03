@@ -501,7 +501,7 @@ body(
     'alkalmaztam: om-pycycle 4.4.0, openmdao 3.39, numpy és matplotlib. '
     'A teljes szimulációs kód verziókezelése git rendszerrel történt, és '
     'reprodukálhatóság érdekében a requirements.txt fájlban rögzítettem a '
-    'pontos verziókat [INTERNET 1].'
+    'pontos verziókat.'
 )
 
 heading2('3.2. A szimulációs modell felépítése')
@@ -514,7 +514,7 @@ body(
     'kis nyomású kompresszor (lpc), VBV-elvezetés (vbv), nagy nyomású '
     'kompresszor (hpc), égéstér (burner), nagy nyomású turbina (hpt), kis '
     'nyomású turbina (lpt), mag- és bypass-fúvócső (core_nozz, byp_nozz), '
-    'valamint teljesítményszámító (perf) [INTERNET 1].'
+    'valamint teljesítményszámító (perf).'
 )
 body(
     'A tervezési ponthoz tartozó bemeneti paramétereket a CFM56_PARAMS szótár '
@@ -565,7 +565,7 @@ body(
     'A szimuláció végrehajtása az engine/simulation.py modulon keresztül '
     'történik (run_design_point(), OffDesignSolver, run_off_design()). Az '
     'eredményeket az EngineResults adatosztály tartalmazza SI/metrikus '
-    'mértékegységekben [INTERNET 1].'
+    'mértékegységekben.'
 )
 body(
     'Az állomásjelölések a következő konvenciót követik: S0 (szabad levegő), '
@@ -1225,14 +1225,7 @@ set_font(run, bold=True)
 p = doc.add_paragraph()
 p.paragraph_format.first_line_indent = Cm(-0.5)
 p.paragraph_format.left_indent = Cm(0.5)
-run = p.add_run('[INTERNET 1] MOHAMED, Z. (2026): CFM56-5B Thermodynamic Simulation – Python forráskód. '
-                'GitHub repository. Letöltés: 2026. május 19.')
-set_font(run)
-
-p = doc.add_paragraph()
-p.paragraph_format.first_line_indent = Cm(-0.5)
-p.paragraph_format.left_indent = Cm(0.5)
-run = p.add_run('[INTERNET 2] CLOUDHUB (Sketchfab): CFM56-5B Engine A319 NEO 98–120 kN – 3D modell (glTF). '
+run = p.add_run('[INTERNET 1] CLOUDHUB (Sketchfab): CFM56-5B Engine A319 NEO 98–120 kN – 3D modell (glTF). '
                 'Licenc: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). '
                 'https://sketchfab.com/3d-models/cfm56-5b-engine-a319-neo-98120-kn-1c5a079eb4da44fcb72be3554592112a '
                 '(letöltés: 2026. november 2.) – Átalakítva: metal-roughness anyagok, WebP textúrák; '
