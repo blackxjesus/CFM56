@@ -72,12 +72,13 @@
     <span class="seg" id="shellSeg" title="Outer casing (nacelle)">
       <button data-v="solid">Casing</button><button data-v="ghost" class="on">See-through</button><button data-v="hidden">Hidden</button>
     </span>
+    <button class="btn" id="heatBtn" title="Colour the engine parts by the gas temperature along the flow path">Heat map</button>
     <button class="btn on" id="partBtn">Part names</button>
     <button class="btn on" id="lblBtn">Station labels</button>
   </div>
   <div class="key" id="key"></div>
   <div class="bar bottom">
-    <div class="legend">Station T
+    <div class="legend"><span id="legTtl">Station T</span>
       <span class="ramp" id="ramp"></span><span>300</span>–<span>1800 K</span></div>
     <div class="spacer"></div>
     <div class="legend" id="note"></div>
@@ -86,7 +87,8 @@
 <div class="credit">3D model: <a href="https://sketchfab.com/CloudHubOmniTeam" target="_blank">CloudHubOmniTeam</a>,
   “CFM56-5B Engine” (Sketchfab),
   <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a>.
-  Rotor speed is shown scaled down; station markers are placed approximately.</div>
+  Rotor speed is shown scaled down; station markers are placed approximately.
+  Heat map: gas temperature interpolated linearly between the stations along the axis, not metal temperature.</div>
 
 <script>
 // ── Streamlit component protocol (v1) ─────────────────────────────────────
@@ -148,9 +150,127 @@ function setRotor(n1) {
   if (mv.paused) mv.play();
 }
 
+// The glow follows the local gas temperature along the combustor + exhaust
+// mesh: the station profile scaled so that it equals the hot temperature at its
+// own station (T4 at station 4 when running, EGT at station 5 at idle and
+// during a start). So the nozzle glows only if the gas there is hot enough.
+// Without the shader patch (fallback) the whole mesh glows with T.
+let hotT = 0;
 function setHot(T) {
+  hotT = T;
+  if (HEAT.uToModel.value) {
+    const ref = S && S.stations.find(st => st.id === (S.hot_label === 'EGT' ? '5' : '4'));
+    HEAT.uGlowK.value = ref && ref.T > 0 ? T / ref.T : 0;
+    if (mvScene) mvScene.queueRender();
+    return;
+  }
   const m = mats.material_2;
   if (m) m.setEmissiveFactor(glow(T));
+}
+
+// ── Heat map ──────────────────────────────────────────────────────────────
+// Each part is coloured by the gas temperature at its axial position x, on the
+// same 300–1800 K scale as the markers. Between two stations the temperature
+// is linear in x (knot x = marker x). The core parts follow the core flow
+// (2 → 21 → 25 → 3 → 4 → 45 → 5 → 8); the casing/nacelle bounds the bypass
+// flow (2 → 21 → 18). The model has only three materials, so the colour is
+// computed per pixel in the shader from the position, not per mesh.
+const CORE_KNOTS = [['2', -6.50], ['21', -5.60], ['25', -3.45], ['3', -2.00],
+                    ['4', -0.80], ['45', 0.05], ['5', 2.75], ['8', 4.40]];
+const BYP_KNOTS = [['2', -6.50], ['21', -5.60], ['18', 4.60]];
+const NK = 8;
+let heatOn = false, mvScene = null;
+const HEAT = {                       // uniforms shared by all patched materials
+  uHeatOn: { value: 0 }, uToModel: { value: null }, uGlowK: { value: 0 },
+  uCoreX: { value: new Array(NK).fill(0) }, uCoreT: { value: new Array(NK).fill(300) },
+  uBypX: { value: new Array(NK).fill(0) }, uBypT: { value: new Array(NK).fill(300) },
+};
+
+function knots(list, xs, ts) {
+  const T = {};
+  for (const st of (S ? S.stations : [])) T[st.id] = st.T;
+  const k = list.filter(([id]) => T[id] !== undefined).map(([id, x]) => [x, T[id]]);
+  if (!k.length) k.push([0, 300]);
+  while (k.length < NK) k.push(k[k.length - 1]);     // pad: repeat the last knot
+  k.forEach(([x, t], i) => { xs[i] = x; ts[i] = t; });
+}
+
+const HEAT_GLSL = `
+uniform float uHeatOn, uHeatByp, uGlowMat, uGlowK;
+uniform float uCoreX[${NK}], uCoreT[${NK}], uBypX[${NK}], uBypT[${NK}];
+varying float vHeatX;
+float heatInterp(float x, float kx[${NK}], float kt[${NK}]) {
+  float t = kt[0];
+  for (int i = 0; i < ${NK - 1}; i++)
+    if (x > kx[i]) t = mix(kt[i], kt[i + 1], clamp((x - kx[i]) / max(kx[i + 1] - kx[i], 1e-4), 0.0, 1.0));
+  return t;
+}
+vec3 glowColor(float T) {           // same curve as glow() in JS
+  float f = clamp((T - 750.0) / 1050.0, 0.0, 1.0);
+  return vec3(min(1.0, f * 2.2) * f, clamp((f - 0.3) * 1.5, 0.0, 1.0) * f * 0.9,
+              max(0.0, (f - 0.8) * 3.0) * f * 0.8);
+}
+vec3 heatColor(float T) {            // same RdYlBu stops as tColor(), sRGB
+  vec3 s[10];
+  s[0] = vec3(49, 54, 149);   s[1] = vec3(69, 117, 180);  s[2] = vec3(116, 173, 209);
+  s[3] = vec3(171, 217, 233); s[4] = vec3(224, 243, 248); s[5] = vec3(254, 224, 144);
+  s[6] = vec3(253, 174, 97);  s[7] = vec3(244, 109, 67);  s[8] = vec3(215, 48, 39);
+  s[9] = vec3(165, 0, 38);
+  float f = clamp((T - 300.0) / 1500.0, 0.0, 1.0) * 9.0;
+  int i = int(min(floor(f), 8.0));
+  vec3 a = s[0], b = s[1];
+  for (int k = 0; k < 9; k++) if (k == i) { a = s[k]; b = s[k + 1]; }
+  return mix(a, b, f - float(i)) / 255.0;
+}`;
+
+function patchMaterial(mat, bypass, glowMat) {
+  if (mat.userData.heat) return;
+  mat.userData.heat = true;
+  mat.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, HEAT, { uHeatByp: { value: bypass ? 1 : 0 },
+                                       uGlowMat: { value: glowMat ? 1 : 0 } });
+    sh.vertexShader = 'uniform mat4 uToModel;\nvarying float vHeatX;\n' +
+      sh.vertexShader.replace('#include <skinning_vertex>',
+        '#include <skinning_vertex>\n  vHeatX = (uToModel * modelMatrix * vec4(transformed, 1.0)).x;');
+    sh.fragmentShader = HEAT_GLSL + '\n' +
+      sh.fragmentShader.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+  if (uGlowMat > 0.5) totalEmissiveRadiance = glowColor(uGlowK * heatInterp(vHeatX, uCoreX, uCoreT));`)
+      .replace('#include <colorspace_fragment>', `#include <colorspace_fragment>
+  if (uHeatOn > 0.5) {
+    float hT = uHeatByp > 0.5 ? heatInterp(vHeatX, uBypX, uBypT) : heatInterp(vHeatX, uCoreX, uCoreT);
+    float shade = 0.35 + 0.65 * abs(normal.z);   // keep the shape readable
+    gl_FragColor.rgb = heatColor(hT) * shade;
+  }`);
+  };
+  mat.customProgramCacheKey = () => 'heat' + (bypass ? 'B' : 'C') + (glowMat ? 'G' : '');
+  mat.needsUpdate = true;
+}
+
+function setupHeat() {
+  const sym = Object.getOwnPropertySymbols(mv).find(s => s.description === 'scene');
+  mvScene = sym ? mv[sym] : null;
+  if (!mvScene || !mvScene.target) { document.getElementById('heatBtn').disabled = true; return; }
+  HEAT.uToModel.value = mvScene.target.matrixWorld.clone();
+  if (mats.material_2) mats.material_2.setEmissiveFactor([0, 0, 0]);  // the shader sets it
+  mvScene.target.traverse(o => {
+    if (!o.isMesh) return;
+    for (const m of [].concat(o.material))
+      if (/^material_\d$/.test(m.name)) patchMaterial(m, m.name === 'material_1', m.name === 'material_2');
+  });
+}
+
+function applyHeat() {
+  document.getElementById('heatBtn').classList.toggle('on', heatOn);
+  document.getElementById('legTtl').textContent = heatOn ? 'Gas T (heat map + stations)' : 'Station T';
+  knots(CORE_KNOTS, HEAT.uCoreX.value, HEAT.uCoreT.value);
+  knots(BYP_KNOTS, HEAT.uBypX.value, HEAT.uBypT.value);
+  HEAT.uHeatOn.value = heatOn ? 1 : 0;
+  setHot(hotT);
+  if (mvScene) {
+    mvScene.target.updateMatrixWorld(true);
+    HEAT.uToModel.value.copy(mvScene.target.matrixWorld).invert();
+    mvScene.queueRender();
+  }
 }
 
 function applyShell() {
@@ -230,7 +350,7 @@ function onRender(state) {
   S = state;
   wall0 = performance.now();
   buildHotspots();
-  if (ready) { setRotor(S.n1); setHot(S.hot_K); }
+  if (ready) { setRotor(S.n1); setHot(S.hot_K); applyHeat(); }
   readout(S.n1, S.hot_K);
   setHeight();
 }
@@ -250,13 +370,19 @@ mv.addEventListener('load', () => {
   for (const m of mv.model.materials) mats[m.name] = m;
   if (mats.material_1) shellBase = mats.material_1.pbrMetallicRoughness.baseColorFactor.slice();
   ready = true;
+  setupHeat();
   applyShell();
+  applyHeat();
   mv.pause();
   if (S) { setRotor(S.n1); setHot(S.hot_K); readout(S.n1, S.hot_K); }
 });
 
 document.querySelectorAll('#shellSeg button').forEach(b =>
   b.addEventListener('click', () => { shellMode = b.dataset.v; applyShell(); }));
+document.getElementById('heatBtn').addEventListener('click', () => {
+  heatOn = !heatOn;
+  applyHeat();
+});
 document.getElementById('partBtn').addEventListener('click', e => {
   const on = !e.currentTarget.classList.contains('on');
   e.currentTarget.classList.toggle('on', on);

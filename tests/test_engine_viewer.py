@@ -61,6 +61,8 @@ def test_component_files_present():
     html = open(os.path.join(_DIR, 'index.html'), encoding='utf-8').read()
     for _, label, _ in STATIONS:      # every station has a marker position
         assert f"'{label}':" in html
+        assert f"['{label}', " in html   # ... and a heat-map knot
+    assert 'id="heatBtn"' in html
 
 
 def test_running_at_idle_follows_idle_not_cycle_point():

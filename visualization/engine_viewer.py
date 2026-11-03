@@ -7,7 +7,12 @@ so a throttle change only sends new values; the 12 MB model is loaded once.
 
 What the view shows, per engine state:
   - station markers with T, P, h of the selected operating point;
-  - hot section (combustor + exhaust) glowing with T4 (running) or EGT (start);
+  - hot section (combustor + exhaust) glowing with the local gas temperature:
+    the station profile scaled to T4 at station 4 (running) or to EGT at
+    station 5 (idle, start), so the nozzle glows only when it is hot there;
+  - optional heat map: every part coloured by the gas temperature at its axial
+    position, linear between the stations (core 2-21-25-3-4-45-5-8, casing
+    2-21-18), same 300-1800 K scale as the markers; computed in the shader;
   - rotor spinning with N1 (visual speed, scaled down from the real rpm);
   - during a start the browser plays the N1/EGT trace itself, at the
     playback speed, from the frame the E/WD has reached.
