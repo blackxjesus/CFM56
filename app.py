@@ -17,7 +17,8 @@ import matplotlib.pyplot as plt
 
 from visualization.station_diagram import plot_station_diagram
 from visualization.ts_diagram import plot_ts_diagram
-from visualization.engine_viewer import engine_viewer, engine_view_state
+from visualization.engine_viewer import (engine_viewer, engine_view_state,
+                                         throttle_lever, THROTTLE_CSS)
 from visualization.ecam import spool_speeds, compute_epr
 from visualization.ewd import ewd_svg, EGT_START_LIMIT
 from visualization.start_plot import plot_start_transient, EGT_TAKEOFF_LIMIT
@@ -31,6 +32,7 @@ from engine.fuel import burn_fuel, FOB_INITIAL_KG
 # ── Config ────────────────────────────────────────────────────────────────
 st.set_page_config(page_title='CFM56-5B Engine Simulator', page_icon='✈️', layout='wide')
 st.markdown(PANEL_CSS, unsafe_allow_html=True)
+st.markdown(THROTTLE_CSS, unsafe_allow_html=True)
 
 SIM_DT = 0.5
 TICK_DT = 0.1
@@ -59,6 +61,11 @@ ss.setdefault('mode', 'NORM')          # CRANK | NORM | IGN/START
 ss.setdefault('master', False)
 ss.setdefault('bleed', True)
 ss.setdefault('fob', FOB_INITIAL_KG)  # kg, burns with FF over sim time; reload refuels
+ss.setdefault('throttle', 0)          # % , set by the lever on the left
+
+# ── Throttle lever: fixed in the left margin, stays in view on scroll ─────
+with st.container(key='throttle_rail'):
+    ss.throttle = throttle_lever(ss.throttle)
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
 def terminal_state_for(sd):
@@ -277,12 +284,12 @@ if ss.eng_state != 'RUNNING':
 c1, c2 = st.columns([2, 1])
 with c1:
     phase = st.selectbox('Flight Phase', FLIGHT_PHASES, key='phase')
-    throttle = st.slider('Throttle [%]', 0, 100, ss.get('throttle', 0), step=5,
-                         key='throttle',
-                         help='0% = IDLE: the running engine holds ground idle '
-                              '(end of the start, N1 ~19 %). The cycle analysis '
-                              'below still shows the lowest cycle point (T4 1000 K) '
-                              'as reference. 5–100% = T4 1035–1700 K, 100% = TOGA')
+    throttle = ss.throttle
+    st.caption(f'Throttle {throttle} % — set with the lever on the left. '
+               '0 % = IDLE: the running engine holds ground idle (end of the '
+               'start, N1 ~19 %); the cycle analysis below then shows the lowest '
+               'cycle point (T4 1000 K) as reference. 5–100 % = T4 1035–1700 K, '
+               '100 % = TOGA.')
     T4 = 1000.0 + throttle * 7.0
 result = lookup[(phase, throttle)]
 n1_c, n2_c = spool_speeds(result, throttle)

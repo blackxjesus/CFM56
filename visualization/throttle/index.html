@@ -1,0 +1,122 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<!-- Vertical throttle lever (Streamlit custom component).
+     Talks the Streamlit component protocol directly with postMessage.
+     Drag, click on the track, mouse wheel or arrow keys; 0-100 % in 5 % steps.
+     The value is sent on release, so dragging does not rerun the app. -->
+<style>
+  :root { --accent: #ff4b4b; --track: #31333f; --text: #fafafa; --muted: #a3a8b8; }
+  html, body { margin: 0; background: transparent; color: var(--text);
+               font-family: "Source Sans Pro", "Source Sans 3", sans-serif;
+               user-select: none; overflow: hidden; }
+  .wrap { display: flex; flex-direction: column; align-items: center; gap: 6px;
+          padding: 4px 0 6px; }
+  .title { font-size: 13px; color: var(--muted); letter-spacing: .5px; }
+  .value { font-size: 20px; font-weight: 600; color: var(--accent);
+           font-variant-numeric: tabular-nums; }
+  .rail { position: relative; width: 70px; height: var(--h, 300px); outline: none;
+          cursor: pointer; touch-action: none; }
+  .rail:focus-visible .thumb { box-shadow: 0 0 0 3px rgba(255,75,75,.45); }
+  .track, .fill { position: absolute; left: 50%; width: 6px; margin-left: -3px;
+                  border-radius: 3px; }
+  .track { top: 0; bottom: 0; background: var(--track); }
+  .fill { bottom: 0; background: var(--accent); }
+  .thumb { position: absolute; left: 50%; width: 18px; height: 18px;
+           margin: -9px 0 0 -9px; border-radius: 50%; background: var(--accent); }
+  .tick { position: absolute; left: 50%; margin-left: 9px; font-size: 10px;
+          color: var(--muted); transform: translateY(-50%); white-space: nowrap; }
+  .tick::before { content: ""; display: inline-block; width: 5px; height: 1px;
+                  background: var(--muted); vertical-align: middle; margin-right: 3px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title">THROTTLE</div>
+  <div class="value" id="val">0 %</div>
+  <div class="rail" id="rail" tabindex="0" role="slider" aria-label="Throttle"
+       aria-valuemin="0" aria-valuemax="100" aria-orientation="vertical">
+    <div class="track"></div>
+    <div class="fill" id="fill"></div>
+    <div class="thumb" id="thumb"></div>
+  </div>
+</div>
+<script>
+function send(type, data) {
+  window.parent.postMessage(Object.assign({ isStreamlitMessage: true, type }, data), '*');
+}
+const rail = document.getElementById('rail');
+const TICKS = [[0, 'IDLE'], [25, '25'], [50, '50'], [75, '75'], [100, 'TOGA']];
+for (const [v, l] of TICKS) {
+  const t = document.createElement('div');
+  t.className = 'tick'; t.textContent = l; t.style.top = (100 - v) + '%';
+  rail.appendChild(t);
+}
+
+let value = 0, sent = 0, dragging = false, disabled = false;
+const clamp = v => Math.max(0, Math.min(100, Math.round(v / 5) * 5));
+
+function draw() {
+  document.getElementById('val').textContent = value + ' %';
+  document.getElementById('fill').style.height = value + '%';
+  document.getElementById('thumb').style.top = (100 - value) + '%';
+  rail.setAttribute('aria-valuenow', value);
+}
+function commit() {
+  if (value !== sent) {
+    sent = value;
+    send('streamlit:setComponentValue', { value, dataType: 'json' });
+  }
+}
+function fromPointer(ev) {
+  const r = rail.getBoundingClientRect();
+  value = clamp((r.bottom - ev.clientY) / r.height * 100);
+  draw();
+}
+
+rail.addEventListener('pointerdown', ev => {
+  if (disabled) return;
+  dragging = true; rail.setPointerCapture(ev.pointerId); rail.focus(); fromPointer(ev);
+});
+rail.addEventListener('pointermove', ev => { if (dragging) fromPointer(ev); });
+rail.addEventListener('pointerup', () => { if (dragging) { dragging = false; commit(); } });
+rail.addEventListener('pointercancel', () => { dragging = false; commit(); });
+
+let wheelTimer = null;
+rail.addEventListener('wheel', ev => {
+  if (disabled) return;
+  ev.preventDefault();
+  value = clamp(value + (ev.deltaY < 0 ? 5 : -5)); draw();
+  clearTimeout(wheelTimer); wheelTimer = setTimeout(commit, 250);
+}, { passive: false });
+rail.addEventListener('keydown', ev => {
+  if (disabled) return;
+  const step = { ArrowUp: 5, ArrowRight: 5, ArrowDown: -5, ArrowLeft: -5,
+                 PageUp: 25, PageDown: -25 }[ev.key];
+  if (ev.key === 'Home') value = 0;
+  else if (ev.key === 'End') value = 100;
+  else if (step !== undefined) value = clamp(value + step);
+  else return;
+  ev.preventDefault(); draw(); commit();
+});
+
+window.addEventListener('message', ev => {
+  if (!ev.data || ev.data.type !== 'streamlit:render') return;
+  const a = ev.data.args, th = ev.data.theme;
+  if (th) {
+    const r = document.documentElement.style;
+    if (th.primaryColor) r.setProperty('--accent', th.primaryColor);
+    if (th.textColor) { r.setProperty('--text', th.textColor); r.setProperty('--muted', th.textColor + 'aa'); }
+    if (th.secondaryBackgroundColor) r.setProperty('--track', th.secondaryBackgroundColor);
+  }
+  if (a.height) rail.style.setProperty('--h', a.height + 'px');
+  disabled = !!ev.data.disabled;
+  if (!dragging) { value = sent = clamp(a.value); draw(); }
+  send('streamlit:setFrameHeight', { height: document.body.scrollHeight });
+});
+send('streamlit:componentReady', { apiVersion: 1 });
+draw();
+</script>
+</body>
+</html>

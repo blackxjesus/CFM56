@@ -98,3 +98,22 @@ def engine_view_state(eng_state, result, n1, start_data=None, frame=0.0,
 def engine_viewer(state, height=600, key='engine3d'):
     """Render the 3D view. Same key across reruns keeps the model loaded."""
     _component(state=state, height=height, key=key, default=None)
+
+
+_throttle = components.declare_component(
+    'throttle_lever', path=os.path.join(os.path.dirname(__file__), 'throttle'))
+
+# Fixed rail in the left page margin: the lever stays in view while scrolling.
+THROTTLE_CSS = """<style>
+[data-testid="stMainBlockContainer"] { padding-left: 8rem; }
+.st-key-throttle_rail {
+    position: fixed; left: 16px; top: 50%; transform: translateY(-50%);
+    width: 88px !important; z-index: 999;
+}
+</style>"""
+
+
+def throttle_lever(value, height=300, key='throttle_lever'):
+    """Vertical throttle lever, 0-100 % in 5 % steps; returns the set value."""
+    v = _throttle(value=int(value), height=height, key=key, default=int(value))
+    return int(v) if v is not None else int(value)
